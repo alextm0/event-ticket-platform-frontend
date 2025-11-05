@@ -1,19 +1,9 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 
-import { ensureAppProfile } from "@/lib/user-profile";
-import { stackServerApp } from "@/stack/server";
+import { requireRole } from "@/lib/auth-guards";
 
 export default async function AdminPage() {
-  const user = await stackServerApp.getUser({ or: "redirect" });
-  const { profile, needsOnboarding } = await ensureAppProfile(user, { allowGrant: false });
-
-  if (needsOnboarding || !profile) {
-    redirect("/onboarding");
-  }
-  if (profile.role !== "admin") {
-    redirect("/");
-  }
+  await requireRole("admin", { allowGrant: false });
 
   return (
     <div className="mx-auto max-w-3xl space-y-8 px-4 py-8 text-slate-300">
@@ -29,15 +19,15 @@ export default async function AdminPage() {
         <h2 className="text-lg font-semibold text-slate-100">Getting started</h2>
         <ul className="space-y-2 text-sm text-slate-400">
           <li>
-            â€¢â€¯Create a read-only overview of organizers, staff, and attendees by wiring this page to
+            • Create a read-only overview of organizers, staff, and attendees by wiring this page to
             your future API.
           </li>
           <li>
-            â€¢â€¯Gate any sensitive settings behind the existing Stack Auth role checks so only admins
+            • Gate any sensitive settings behind the existing Stack Auth role checks so only admins
             can access them.
           </li>
           <li>
-            â€¢â€¯Use the existing navigation link to provide quick access for the 1â€“2 pre-seeded admin
+            • Use the existing navigation link to provide quick access for the 1–2 pre-seeded admin
             accounts in Stack Auth.
           </li>
         </ul>

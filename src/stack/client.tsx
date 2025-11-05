@@ -9,7 +9,7 @@ export const stackClientApp = new StackClientApp({
   urls: {
     signIn: "/sign-in",
     signUp: "/sign-up",
-    afterSignUp: "/onboarding",
+    afterSignUp: "/",
     afterSignIn: "/",
   },
 });

@@ -1,19 +1,9 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 
-import { ensureAppProfile } from "@/lib/user-profile";
-import { stackServerApp } from "@/stack/server";
+import { requireRole } from "@/lib/auth-guards";
 
 export default async function OrganizerPage() {
-  const user = await stackServerApp.getUser({ or: "redirect" });
-
-  const { profile, needsOnboarding } = await ensureAppProfile(user, { allowGrant: false });
-  if (needsOnboarding || !profile) {
-    redirect("/onboarding");
-  }
-  if (profile.role !== "organizer") {
-    redirect("/");
-  }
+  await requireRole("organizer", { allowGrant: false });
 
   return (
     <div className="mx-auto max-w-3xl space-y-8 px-4 py-8 text-slate-300">

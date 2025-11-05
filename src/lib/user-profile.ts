@@ -1,4 +1,4 @@
-import { createHash } from "crypto";
+import { createHash, randomBytes } from "crypto";
 
 import type { CurrentServerUser } from "@stackframe/stack";
 
@@ -79,12 +79,14 @@ export async function ensureAppProfile(
     throw new Error("Stack Auth user is missing an email address.");
   }
 
+  const generatedPassword = randomBytes(32).toString("hex");
+
   await createBackendUser(user, {
     id: normalizedMetadata.appUserId,
     email,
     fullName: user.displayName ?? email,
     role: normalizedMetadata.role,
-    password: deriveDeterministicUuid(user.id),
+    password: generatedPassword,
   });
 
   return { profile: normalizedMetadata, needsOnboarding: false };
@@ -115,7 +117,14 @@ function inferRoleFromMetadata(metadata: Partial<AppUserProfile>): AppRole | nul
 
 export function deriveDeterministicUuid(input: string): string {
   const hex = createHash("sha256").update(input).digest("hex");
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+  const timeLow = hex.slice(0, 8);
+  const timeMid = hex.slice(8, 12);
+  const timeHi = (parseInt(hex.slice(12, 16), 16) & 0x0fff) | 0x5000; // Version 5
+  const clockSeq = (parseInt(hex.slice(16, 20), 16) & 0x3fff) | 0x8000; // Variant 10
+  const node = hex.slice(20, 32);
+  return `${timeLow}-${timeMid}-${timeHi.toString(16).padStart(4, "0")}-${clockSeq
+    .toString(16)
+    .padStart(4, "0")}-${node}`;
 }
 
 function isValidUuid(value: string): boolean {
