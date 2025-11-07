@@ -19,15 +19,15 @@ export default async function AdminPage() {
         <h2 className="text-lg font-semibold text-slate-100">Getting started</h2>
         <ul className="space-y-2 text-sm text-slate-400">
           <li>
-            • Create a read-only overview of organizers, staff, and attendees by wiring this page to
+            Create a read-only overview of organizers, staff, and attendees by wiring this page to
             your future API.
           </li>
           <li>
-            • Gate any sensitive settings behind the existing Stack Auth role checks so only admins
+            Gate any sensitive settings behind the existing Stack Auth role checks so only admins
             can access them.
           </li>
           <li>
-            • Use the existing navigation link to provide quick access for the 1–2 pre-seeded admin
+            Use the existing navigation link to provide quick access for the 1-2 pre-seeded admin
             accounts in Stack Auth.
           </li>
         </ul>

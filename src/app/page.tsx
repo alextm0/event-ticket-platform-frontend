@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+  import { redirect } from "next/navigation";
 
 import { ensureAppProfile } from "@/lib/user-profile";
 import { stackServerApp } from "@/stack/server";

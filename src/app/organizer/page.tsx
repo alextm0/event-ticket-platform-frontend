@@ -1,34 +1,35 @@
+
 import Link from "next/link";
+import { stackServerApp } from "@/stack/server";
+import { getEvents } from "@/lib/backend-client";
+import { Event } from "@/types";
 
-import { requireRole } from "@/lib/auth-guards";
-
-export default async function OrganizerPage() {
-  await requireRole("organizer", { allowGrant: false });
+export default async function OrganizerDashboard() {
+  const user = await stackServerApp.getUser({ or: "redirect" });
+  const events = await getEvents(user, { useMockData: true });
 
   return (
-    <div className="mx-auto max-w-3xl space-y-8 px-4 py-8 text-slate-300">
-      <div>
-        <h1 className="text-3xl font-bold text-slate-100">Organizer workspace</h1>
-        <p className="mt-2 text-slate-400">
-          You can access this area because you hold the <span className="font-medium">organizer</span> role in Stack Auth.
-        </p>
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-semibold text-slate-100">Organizer Dashboard</h1>
+        <Link href="/organizer/create-event">
+          <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+            Create Event
+          </button>
+        </Link>
       </div>
-
-      <section className="rounded-lg border border-slate-800 bg-slate-900 p-5 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-100">Event planning toolkit</h2>
-        <p className="text-sm text-slate-400">
-          This area is ready for features like invitation management, ticket allocation, and schedule
-          publishing once your backend services are available.
-        </p>
-        <p className="mt-3 text-sm text-slate-500">
-          Use this page to wire up the organizer flows after you expose the necessary APIs. The auth layer
-          already ensures only users with <span className="font-medium">role:organizer</span> can access it.
-        </p>
-      </section>
-
-      <Link href="/" className="inline-flex items-center gap-1 text-sky-400 hover:text-sky-300">
-        <span aria-hidden="true">&lt;-</span> Back to home
-      </Link>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {events.map((event: Event) => (
+          <div key={event.id} className="bg-slate-800 rounded-lg p-6">
+            <h2 className="text-xl font-semibold text-slate-100 mb-2">{event.name}</h2>
+            <p className="text-slate-400 mb-4">{event.description}</p>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-slate-500">{event.location}</span>
+              <span className="text-sm text-slate-500">{new Date(event.date).toLocaleDateString()}</span>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
