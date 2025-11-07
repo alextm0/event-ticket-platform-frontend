@@ -8,14 +8,26 @@ import { stackClientApp } from "@/stack/client";
 import "./globals.css";
 
 const authTheme = {
-  color: {
+  dark: {
     background: "#020617",
-    cardBackground: "#0f172a",
-    cardBorder: "#1e293b",
-    textPrimary: "#f8fafc",
-    textSecondary: "#cbd5f5",
-    buttonBackground: "#38bdf8",
-    buttonText: "#020617",
+    card: "#0f172a",
+    border: "#1e293b",
+    primary: "#38bdf8",
+    primaryForeground: "#020617",
+    secondary: "#38bdf8",
+    secondaryForeground: "#020617",
+    accent: "#38bdf8",
+    accentForeground: "#020617",
+    destructive: "#ef4444",
+    destructiveForeground: "#f8fafc",
+    muted: "#1e293b",
+    mutedForeground: "#94a3b8",
+    popover: "#0f172a",
+    popoverForeground: "#f8fafc",
+    ring: "#38bdf8",
+    foreground: "#f8fafc",
+    cardForeground: "#f8fafc",
+    input: "#1e293b",
   },
   font: {
     family: "inherit",
