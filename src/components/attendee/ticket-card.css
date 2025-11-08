@@ -24,15 +24,16 @@
 
 .ticket-status {
   font-size: 0.85rem;
+  font-weight: 500;
   padding: 6px 10px;
   border-radius: 9999px;
   text-transform: capitalize
 }
 .ticket-status.status-checked_in { background: #dcfce7; color: #065f46; }
-.ticket-status.status-pending { background: #fffbeb; color: #92400e; }
+.ticket-status.status-purchased { background: #fffbeb; color: #92400e; }
 .ticket-status.status-cancelled { background: #fee2e2; color: #991b1b; }
-.ticket-status.status-pending { background: #fffbeb; color: #92400e; }
-.ticket-status.status-cancelled { background: #fee2e2; color: #991b1b; }
+.ticket-status.status-null { background: #c2c2c2; color: #92400e; }
+.ticket-status.status-default { background: #9c9c9c; color: #242323; }
 
 .ticket-body {
   display: flex;

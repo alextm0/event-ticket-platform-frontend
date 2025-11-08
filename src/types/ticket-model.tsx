@@ -3,6 +3,7 @@ import { UUID } from "crypto";
 type Ticket = {
     id: UUID;
     order_id: UUID;
+    event_id: UUID;
     ticket_type: string,
     qr_code: string,
     status: "DEFAULT" | "PURCHASED" | "CHECKED_IN" | "NULL",
