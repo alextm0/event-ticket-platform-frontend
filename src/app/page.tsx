@@ -2,13 +2,7 @@ import { redirect } from "next/navigation";
 
 import { ensureAppProfile } from "@/lib/user-profile";
 import { stackServerApp } from "@/stack/server";
-
-const ROLE_DESTINATIONS: Record<string, string> = {
-  admin: "/admin",
-  organizer: "/organizer",
-  staff: "/staff",
-  attendee: "/attendee",
-};
+import ROLE_DESTINATIONS from "@/utils/role-destinations";
 
 export default async function Home() {
   const user = await stackServerApp.getUser({ or: "redirect" });

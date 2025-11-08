@@ -2,7 +2,7 @@ import { Suspense } from "react";
 
 import { StackProvider, StackTheme } from "@stackframe/stack";
 
-import { AppHeader } from "@/components/AppHeader";
+import { AppHeader } from "@/components/app-header/AppHeader";
 import { stackClientApp } from "@/stack/client";
 
 import "./globals.css";
