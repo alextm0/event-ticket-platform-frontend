@@ -13,7 +13,6 @@ import ROLE_LABELS from "@/utils/role-labels";
 export function AppHeader() {
   const pathname = usePathname();
   const user = useUser({ or: "return-null" });
-
   const role = (user?.clientReadOnlyMetadata as { role?: string } | undefined)?.role ?? null;
   const destination = role ? ROLE_DESTINATIONS[role] : user ? "/" : null;
   const linkLabel = role ? ROLE_LABELS[role] : "Dashboard";

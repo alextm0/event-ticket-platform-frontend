@@ -49,7 +49,7 @@ export async function createBackendUser(
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
-      const response = await fetch(`${serverRuntimeConfig.backendApiUrl}/api/users`, {
+      const response = await fetch(`${serverRuntimeConfig.backendApiUrl}/api/v1/users`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${accessToken}`,

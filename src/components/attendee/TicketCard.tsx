@@ -1,8 +1,8 @@
-import TicketDTO from '@/utils/ticket-model'
+import Ticket from '@/types/ticket-model'
 import React from 'react'
 import './ticket-card.css'
 
-type Props = { ticket: TicketDTO }
+type Props = { ticket: Ticket }
 
 function TicketCard({ ticket }: Props) {
     const created = ticket?.created_at ? new Date(ticket.created_at).toLocaleString() : '—'

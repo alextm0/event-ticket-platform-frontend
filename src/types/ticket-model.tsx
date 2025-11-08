@@ -1,15 +1,14 @@
 import { UUID } from "crypto";
 
-type TicketDTO = {
+type Ticket = {
     id: UUID;
     order_id: UUID;
     ticket_type: string,
     qr_code: string,
-    status: "",
+    status: "DEFAULT" | "PURCHASED" | "CHECKED_IN" | "NULL",
     checked_in_at: Date | null,
     created_at: Date,
     updated_at: Date,
-    ticket_validations: string
 };
 
-export default TicketDTO;
+export default Ticket;

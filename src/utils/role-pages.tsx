@@ -13,7 +13,7 @@ const ROLE_PAGES: Record<string,Array<{ href: string, label: string }>> = {
     ],
     "attendee":
     [
-        { href:"/attendee", label:"Attendee Dashboars"},
+        { href:"/attendee", label:"Attendee Dashboard"},
         { href: "/my-tickets", label: "My Tickets" },
         {href: "/browse-events", label: "Browse Events"}
     ]
