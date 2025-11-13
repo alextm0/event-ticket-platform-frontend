@@ -1,0 +1,159 @@
+"use client";
+
+import React, { useEffect, useRef, useState } from "react";
+import jsQR from "jsqr";
+import { mockTickets } from "@/lib/mocked-data";
+
+interface ValidationPopup {
+  show: boolean;
+  isValid: boolean;
+  message: string;
+}
+
+interface Props {
+  eventId?: string;
+}
+
+export default function QRScannerClient({ eventId }: Props) {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [qrData, setQrData] = useState<string>("");
+  const [popup, setPopup] = useState<ValidationPopup>({ show: false, isValid: false, message: "" });
+  const lastScannedRef = useRef<string>("");
+  const popupRef = useRef<ValidationPopup>(popup);
+
+
+  useEffect(() => {
+    popupRef.current = popup;
+  }, [popup]);
+
+  useEffect(() => {
+    let animationFrameId: number | null = null;
+
+    async function startCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "environment" },
+        });
+        if (!videoRef.current) return;
+        videoRef.current.srcObject = stream;
+        videoRef.current.setAttribute("playsinline", "true");
+        await videoRef.current.play();
+
+        const scan = () => {
+          // don't start a new validation while popup is visible
+          if (popupRef.current.show) {
+            animationFrameId = requestAnimationFrame(scan);
+            return;
+          }
+
+          if (videoRef.current && videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA) {
+            const canvas = canvasRef.current;
+            if (!canvas) return;
+            const context = canvas.getContext("2d");
+            if (!context) return;
+
+            canvas.width = videoRef.current.videoWidth;
+            canvas.height = videoRef.current.videoHeight;
+            context.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+
+            const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+            const code = jsQR(imageData.data, canvas.width, canvas.height);
+            if (code && code.data !== lastScannedRef.current) {
+              lastScannedRef.current = code.data;
+              setQrData(code.data);
+              validateTicketLocal(code.data);
+            }
+          }
+          animationFrameId = requestAnimationFrame(scan);
+        };
+
+        scan();
+      } catch (err) {
+        console.error("Error accessing camera:", err);
+        setPopup({ show: true, isValid: false, message: "Camera access error" });
+      }
+    }
+
+    startCamera();
+
+    return () => {
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+      if (videoRef.current?.srcObject) {
+        (videoRef.current.srcObject as MediaStream).getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, [eventId]);
+
+  //TO DO: Replace with real backend validation
+  
+  function validateTicketLocal(data: string) {
+    const ticket = mockTickets.find((t) => t.qr_code === data);
+
+    if (!ticket) {
+      setPopup({ show: true, isValid: false, message: "Invalid" });
+      return;
+    }
+
+    setPopup({ show: true, isValid: true, message: "Valid" });
+  }
+
+  return (
+    <>
+      <video ref={videoRef} style={{ width: "100%", border: "1px solid #ccc" }} />
+      <canvas ref={canvasRef} style={{ display: "none" }} />
+      <div style={{ marginTop: "20px", padding: "10px", border: "1px solid #ccc" }}>
+        <h2>Scanned Ticket Details:</h2>
+        {qrData ? <pre>{qrData}</pre> : <p>No QR code scanned yet.</p>}
+      </div>
+
+      {popup.show && (
+        <div
+          suppressHydrationWarning
+          style={{
+            position: "fixed",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            padding: "20px",
+            fontSize: "20px",
+            fontWeight: "bold",
+            borderRadius: "10px",
+            color: "white",
+            backgroundColor: popup.isValid ? "#28a745" : "#dc3545",
+            boxShadow: "0 4px 6px rgba(0, 0, 0, 0.3)",
+            zIndex: 1000,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "16px",
+            maxWidth: "90vw",
+            maxHeight: "80vh",
+            overflow: "auto",
+            whiteSpace: "pre-wrap",
+          }}
+        >
+          {popup.message}
+          <button
+            onClick={() => {
+              setPopup({ show: false, isValid: false, message: "" });
+              lastScannedRef.current = "";
+            }}
+            style={{
+              padding: "10px 20px",
+              fontSize: "16px",
+              fontWeight: "bold",
+              border: "none",
+              borderRadius: "5px",
+              backgroundColor: "white",
+              color: popup.isValid ? "#28a745" : "#dc3545",
+              cursor: "pointer",
+            }}
+          >
+            Continue
+          </button>
+        </div>
+      )}
+    </>
+  );
+}
