@@ -35,6 +35,7 @@ export async function POST(request: Request) {
       body: JSON.stringify({ qrCodeId: ticketId }),
     });
 
+
     if (!backendResponse.ok) {
       const errorBody = await backendResponse.json();
       return NextResponse.json(errorBody, { status: backendResponse.status });
