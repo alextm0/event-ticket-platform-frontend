@@ -1,12 +1,10 @@
-
-export interface Event {
-  id: number;
-  name: string;
+export interface EventResponse {
+  id: string; // UUID
+  organizerId: string; // UUID
+  title: string;
   description: string;
-  date: string;
   location: string;
-  organizer: {
-    id: string;
-    name: string;
-  };
+  startTime: string; // Instant
+  endTime: string; // Instant
+  status: 'DRAFT' | 'PUBLISHED' | 'CANCELLED';
 }

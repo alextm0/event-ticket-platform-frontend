@@ -1,8 +1,6 @@
 import type { CurrentServerUser } from "@stackframe/stack";
 
 import { serverRuntimeConfig } from "@/config/server-env";
-import { Event } from "@/types";
-import { mockedEvents } from "@/lib/mocked-data";
 
 interface CreateUserPayload {
   id: string;
@@ -49,7 +47,7 @@ export async function createBackendUser(
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
-      const response = await fetch(`${serverRuntimeConfig.backendApiUrl}/api/users`, {
+      const response = await fetch(`${serverRuntimeConfig.backendApiUrl}/api/v1/users`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -107,9 +105,7 @@ export async function getEvents(
   user: CurrentServerUser,
   options: { timeoutMs?: number; maxRetries?: number, useMockData?: boolean } = {},
 ): Promise<Event[]> {
-  if (options.useMockData) {
-    return Promise.resolve(mockedEvents);
-  }
+
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const maxRetries = options.maxRetries ?? DEFAULT_MAX_RETRIES;
 
@@ -138,7 +134,8 @@ export async function getEvents(
       clearTimeout(timeout);
 
       if (response.ok) {
-        return await response.json();
+        const page = await response.json();
+        return page.content;
       }
 
       if (response.status >= 500 && response.status < 600 && attempt < maxRetries) {
@@ -178,3 +175,5 @@ export async function getEvents(
   }
   throw new Error("Failed to fetch events due to repeated network errors.");
 }
+
+
