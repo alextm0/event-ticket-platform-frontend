@@ -16,12 +16,14 @@ export default async function StaffPage() {
 
       <section className="space-y-3 rounded-lg border border-slate-800 bg-slate-900 p-5 shadow-sm">
         <h2 className="text-lg font-semibold text-slate-100">Event operations</h2>
-        <p className="text-sm text-slate-400">
-          This is a placeholder area for staff tools like attendee check-in, ticket scanning, and real-time event updates.
-        </p>
-        <p className="text-sm text-slate-500">
-          As development continues, connect this view to your operational APIs to surface the tools your team needs on event day.
-        </p>
+        <div className="mt-4">
+          <Link
+            href="/staff/scan"
+            className="inline-flex items-center justify-center rounded-md bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700 transition-colors"
+          >
+            Scan Tickets
+          </Link>
+        </div>
       </section>
 
       <Link href="/" className="inline-flex items-center gap-1 text-sky-400 hover:text-sky-300">

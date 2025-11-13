@@ -1,23 +1,7 @@
 import { NextResponse } from "next/server";
+import { ensureAppProfile } from "@/lib/user-profile";
 import { stackServerApp } from "@/stack/server";
 import { serverRuntimeConfig } from "@/config/server-env";
-
-const USE_MOCK_VALIDATION =
-  process.env.USE_MOCK_TICKET_VALIDATION &&
-  process.env.USE_MOCK_TICKET_VALIDATION.toLowerCase() === "true";
-
-const MOCK_VALIDATION_RESULTS: Record<string, { status: number; body: unknown }> = {
-  // Known good code
-  "11111111-1111-1111-1111-111111111111": {
-    status: 201,
-    body: { message: "Ticket validated (mock)", ticketId: "11111111-1111-1111-1111-111111111111" },
-  },
-  // Known invalid / already used code
-  "22222222-2222-2222-2222-222222222222": {
-    status: 409,
-    body: { message: "Ticket already checked in (mock)" },
-  },
-};
 
 export async function POST(request: Request) {
   try {
@@ -26,19 +10,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const { ticketId } = await request.json();
+    const { profile } = await ensureAppProfile(user, { allowGrant: false });
+    if (!profile) {
+      return NextResponse.json({ message: "Unauthorized: Missing profile" }, { status: 401 });
+    }
 
-    if (USE_MOCK_VALIDATION) {
-      const mockResult =
-        ticketId && typeof ticketId === "string"
-          ? MOCK_VALIDATION_RESULTS[ticketId]
-          : undefined;
-
-      if (!mockResult) {
-        return NextResponse.json({ message: "Ticket not found (mock)" }, { status: 404 });
-      }
-
-      return NextResponse.json(mockResult.body, { status: mockResult.status });
+    const { ticketId, eventId } = await request.json();
+    if (!ticketId || !eventId) {
+      return NextResponse.json({ message: "ticketId and eventId are required" }, { status: 400 });
     }
 
     const { accessToken } = await user.currentSession.getTokens();
@@ -46,13 +25,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Unauthorized: No access token" }, { status: 401 });
     }
 
-    const backendResponse = await fetch(`${serverRuntimeConfig.backendApiUrl}/api/v1/ticket-validations`, {
+    const backendResponse = await fetch(`${serverRuntimeConfig.backendApiUrl}/api/v1/events/${eventId}/ticket-validations`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
+        "X-User-Id": profile.appUserId,
       },
-      body: JSON.stringify({ ticketId }),
+      body: JSON.stringify({ qrCodeId: ticketId }),
     });
 
     if (!backendResponse.ok) {
