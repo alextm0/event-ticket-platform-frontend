@@ -10,6 +10,9 @@ export default function BrowseEventsClient() {
   const [showPayment, setShowPayment] = useState(false);
   const [paymentData, setPaymentData] = useState({ cardName: "", cardNumber: "", expiry: "", cvv: "" });
   const [loading, setLoading] = useState(false);
+  const selectedTicketData = mockTicketTypes.find((t) => t.id === selectedTicket);
+  const availableCount = selectedTicketData ? selectedTicketData.total_quantity - selectedTicketData.sold_count : 10;
+  const maxQuantity = Math.min(10, availableCount);
 
   const getAvailableTickets = () => {
     if (!selectedEvent) return [];
@@ -22,7 +25,6 @@ export default function BrowseEventsClient() {
 
   const handlePaymentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!selectedEvent || !selectedTicket) {
       return;
     }
@@ -30,14 +32,13 @@ export default function BrowseEventsClient() {
     if (!ticket) {
       return;
     }
-
     setLoading(true);
-
     // Mock payment processing
     await new Promise((resolve) => setTimeout(resolve, 1500));
     
     const total = ticket.price * quantity;
-    alert(`✓ Purchase successful!\n\n${quantity}x ${ticket.name} for ${selectedEvent.name}\nTotal: $${total.toFixed(2)}\n\nConfirmation sent to email.`);
+    // TODO: Replace with toast notification or success modal
+    alert(`✓ Purchase successful!\n\n${quantity}x ${ticket.name} for ${selectedEvent.name}\nTotal: $${total.toFixed(2)}`);
     
     // Reset state
     setSelectedEvent(null);
@@ -220,7 +221,7 @@ export default function BrowseEventsClient() {
               ))}
             </div>
           </div>
-
+          
           {selectedTicket && (
             <div className="mt-8 p-4 rounded-lg border border-slate-800 bg-slate-800">
               <div className="flex items-center gap-4 mb-4">
@@ -228,13 +229,13 @@ export default function BrowseEventsClient() {
                 <input
                   type="number"
                   min="1"
-                  max="10"
+                  max={maxQuantity}
                   value={quantity}
-                  onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                  onChange={(e) => setQuantity(Math.max(1, Math.min(maxQuantity, parseInt(e.target.value) || 1)))}
                   onBlur={(e) => {
                     const val = parseInt(e.target.value);
                     if (isNaN(val) || val < 1) setQuantity(1);
-                    if (val > 10) setQuantity(10);
+                    if (val > maxQuantity) setQuantity(maxQuantity);
                   }}
                   className="w-16 px-3 py-2 bg-slate-700 border border-slate-600 rounded text-white"
                 />
