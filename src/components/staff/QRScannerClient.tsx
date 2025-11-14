@@ -35,7 +35,10 @@ export default function QRScannerClient({ eventId }: Props) {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: "environment" },
         });
-        if (!videoRef.current) return;
+        if (!videoRef.current) {
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
         videoRef.current.srcObject = stream;
         videoRef.current.setAttribute("playsinline", "true");
         await videoRef.current.play();
