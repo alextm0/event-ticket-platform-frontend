@@ -1,12 +1,12 @@
 
 import Link from "next/link";
 import { stackServerApp } from "@/stack/server";
-import { getEvents } from "@/lib/backend-client";
+import { backendClient } from "@/lib/backend-client";
 import { EventResponse } from "@/types";
 
 export default async function OrganizerDashboard() {
   const user = await stackServerApp.getUser({ or: "redirect" });
-  const events = await getEvents(user);
+  const events = await backendClient.getEvents(user);
 
   return (
     <div className="container mx-auto px-4 py-8">

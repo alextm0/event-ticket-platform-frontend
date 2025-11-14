@@ -1,9 +1,16 @@
+"use client";
 
-export default function CreateEventPage() {
+import { EventForm } from "@/components/EventForm";
+import { useUser } from "@stackframe/stack";
+
+export default function CreateEvent() {
+  const user = useUser();
+
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-semibold text-slate-100 mb-8">Create Event</h1>
-      {/* Event form will go here */}
-    </div>
+    <main className="flex min-h-screen flex-col items-center justify-between p-24">
+      <EventForm
+        organizerId={user?.clientReadOnlyMetadata.appUserId as string}
+      />
+    </main>
   );
 }
