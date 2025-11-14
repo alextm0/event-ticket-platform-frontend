@@ -1,5 +1,4 @@
 import { StackHandler } from "@stackframe/stack";
-
 import { stackServerApp } from "../../../stack/server";
 
 type StackHandlerProps = Parameters<typeof StackHandler>[0];

@@ -9,7 +9,8 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@stackframe/stack": "^2.8.41",
+    "@stackframe/stack": "^2.8.51",
+    "lucide-react": "^0.553.0",
     "next": "15.5.4",
     "react": "19.1.0",
     "react-dom": "19.1.0",

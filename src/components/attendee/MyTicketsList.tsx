@@ -5,6 +5,7 @@ import React, { useMemo, useState } from 'react'
 import TicketCard from './TicketCard';
 import SelectSortingCriterias from './SelectSortingCriterias';
 import AddFiltersButton from './AddFiltersButton';
+import Ticket from '@/types/ticket-model';
 
 function MyTicketsList() {
   
@@ -12,7 +13,7 @@ function MyTicketsList() {
     const [filtersList, applyFilters] = useState<string[]>([]);
     const user = useUser({or: "return-null"}) ?? null
     const userId = user?.id;
-    let tickets = mockTickets;
+    const tickets = mockTickets;
     // TODO: Replace the request below with a real API call to fetch tickets for the authenticated user
 
     // try{
@@ -56,7 +57,7 @@ function MyTicketsList() {
         </div>
         <div className="space-y-3">
             {sortedTickets && sortedTickets.length > 0 ? (
-                sortedTickets.map((ticket: any) => (
+                sortedTickets.map((ticket: Ticket) => (
                     <TicketCard key={String(ticket.id)} ticket={ticket} />
                 ))
             ) : (
