@@ -1,22 +1,7 @@
 'use client';
 
 import { useState } from "react";
-import { mockedEvents } from "@/lib/mocked-data";
-
-interface TicketType {
-  id: string;
-  name: string;
-  price: number;
-  quantity: number;
-}
-
-
-// Mocked ticket types for demonstration
-const TICKET_TYPES: TicketType[] = [
-  { id: "general", name: "General Admission", price: 50, quantity: 100 },
-  { id: "vip", name: "VIP", price: 150, quantity: 50 },
-  { id: "premium", name: "Premium VIP", price: 300, quantity: 20 },
-];
+import { mockedEvents, mockTicketTypes } from "@/lib/mocked-data";
 
 export default function BrowseEventsClient() {
   const [selectedEvent, setSelectedEvent] = useState<typeof mockedEvents[0] | null>(null);
@@ -26,7 +11,10 @@ export default function BrowseEventsClient() {
   const [paymentData, setPaymentData] = useState({ cardName: "", cardNumber: "", expiry: "", cvv: "" });
   const [loading, setLoading] = useState(false);
 
-  // TODO: Replace mockedEvents usage with a real API call to fetch events
+  const getAvailableTickets = () => {
+    if (!selectedEvent) return [];
+    return mockTicketTypes.filter((t) => t.event_id === selectedEvent.id && t.is_active);
+  };
 
   const handleBuyTicket = () => {
     setShowPayment(true);
@@ -34,28 +22,23 @@ export default function BrowseEventsClient() {
 
   const handlePaymentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-
-    // TODO: Call payment and order API?
-
-    // Mock payment processing (keep for now)
-    await new Promise((resolve) => setTimeout(resolve, 1500));
 
     if (!selectedEvent || !selectedTicket) {
-      setLoading(false);
       return;
     }
-    const ticket = TICKET_TYPES.find((t) => t.id === selectedTicket);
+    const ticket = mockTicketTypes.find((t) => t.id === selectedTicket);
     if (!ticket) {
-      setLoading(false);
       return;
     }
 
-    const total = ticket.price * quantity;
-    alert(`✓ Purchase successful!\n\n${quantity}x ${ticket.name} for ${selectedEvent.name}\nTotal: $${total}\n\nConfirmation sent to email.`);
-    
-    // TODO: After success, call API to persist purchase and create tickets and qr codes
+    setLoading(true);
 
+    // Mock payment processing
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    
+    const total = ticket.price * quantity;
+    alert(`✓ Purchase successful!\n\n${quantity}x ${ticket.name} for ${selectedEvent.name}\nTotal: $${total.toFixed(2)}\n\nConfirmation sent to email.`);
+    
     // Reset state
     setSelectedEvent(null);
     setSelectedTicket(null);
@@ -66,7 +49,7 @@ export default function BrowseEventsClient() {
   };
 
   if (showPayment && selectedEvent && selectedTicket) {
-    const ticket = TICKET_TYPES.find((t) => t.id === selectedTicket);
+    const ticket = mockTicketTypes.find((t) => t.id === selectedTicket);
     const total = (ticket?.price || 0) * quantity;
 
     return (
@@ -76,7 +59,7 @@ export default function BrowseEventsClient() {
 
           <div className="mb-6 p-4 rounded-lg bg-slate-800 border border-slate-700">
             <p className="text-slate-300"><span className="font-semibold">{selectedEvent.name}</span> - {quantity}x {ticket?.name}</p>
-            <p className="text-2xl font-bold text-sky-400 mt-2">${total}</p>
+            <p className="text-2xl font-bold text-sky-400 mt-2">${total.toFixed(2)}</p>
           </div>
 
           <form onSubmit={handlePaymentSubmit} className="space-y-4">
@@ -154,7 +137,7 @@ export default function BrowseEventsClient() {
                 className="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded font-medium disabled:opacity-50"
                 disabled={loading}
               >
-                {loading ? "Processing..." : "Pay $" + total}
+                {loading ? "Processing..." : `Pay $${total.toFixed(2)}`}
               </button>
             </div>
           </form>
@@ -183,9 +166,9 @@ export default function BrowseEventsClient() {
               <p className="mt-1 text-sm text-slate-500">
                 📅 {new Date(event.date).toLocaleDateString("en-US", { timeZone: "UTC" })}
               </p>
-              <button className="mt-4 inline-block px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded text-sm font-medium">
-                View & Buy Tickets
-              </button>
+              <div className="mt-4 inline-block px-4 py-2 bg-sky-600 text-white rounded text-sm font-medium pointer-events-none">
+            View & Buy Tickets
+              </div>
             </div>
           ))}
         </div>
@@ -210,7 +193,7 @@ export default function BrowseEventsClient() {
           <div className="mt-8">
             <h3 className="text-lg font-semibold text-slate-100 mb-4">Select Ticket Type</h3>
             <div className="space-y-3">
-              {TICKET_TYPES.map((ticket) => (
+              {getAvailableTickets().map((ticket) => (
                 <label
                   key={ticket.id}
                   className={`flex items-center gap-3 p-4 border rounded-lg cursor-pointer transition ${
@@ -229,9 +212,10 @@ export default function BrowseEventsClient() {
                   />
                   <div className="flex-1">
                     <p className="font-semibold text-slate-100">{ticket.name}</p>
-                    <p className="text-sm text-slate-400">${ticket.price} each</p>
+                    <p className="text-sm text-slate-400">{ticket.description}</p>
+                    <p className="text-sm text-slate-500">${ticket.price.toFixed(2)} each</p>
                   </div>
-                  <p className="text-sm text-slate-500">{ticket.quantity} available</p>
+                  <p className="text-sm text-slate-500">{ticket.total_quantity - ticket.sold_count} available</p>
                 </label>
               ))}
             </div>
@@ -247,11 +231,16 @@ export default function BrowseEventsClient() {
                   max="10"
                   value={quantity}
                   onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                  onBlur={(e) => {
+                    const val = parseInt(e.target.value);
+                    if (isNaN(val) || val < 1) setQuantity(1);
+                    if (val > 10) setQuantity(10);
+                  }}
                   className="w-16 px-3 py-2 bg-slate-700 border border-slate-600 rounded text-white"
                 />
               </div>
               <div className="text-lg font-semibold text-slate-100">
-                Total: ${(TICKET_TYPES.find((t) => t.id === selectedTicket)?.price || 0) * quantity}
+                Total: ${((mockTicketTypes.find((t) => t.id === selectedTicket)?.price || 0) * quantity).toFixed(2)}
               </div>
               <button
                 onClick={handleBuyTicket}
