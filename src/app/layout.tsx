@@ -47,7 +47,6 @@ export default function RootLayout({
           <StackTheme theme={authTheme}>
             <Suspense fallback={<div className="border-b border-slate-800 bg-slate-900 py-3" />}>
               <AppHeader />
-              <AuthSync />
             </Suspense>
             <main className="mx-auto min-h-screen max-w-5xl px-4 py-6">{children}</main>
           </StackTheme>
