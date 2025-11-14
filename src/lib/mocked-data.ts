@@ -102,7 +102,7 @@ export const mockTicketTypes: TicketType[] = [
     updated_at: new Date("2025-11-01T08:00:00Z"),
   },
   {
-    id: "b2c3d4e5-f6a7-4b5c-9d0e-1f2a3b4c5d6e",
+    id: "e5f6a7b8-c9d0-4e5f-2a3b-4c5d6e7f8a9b",
     event_id: 1,
     name: "General Admission",
     description: "Standard ticket for general event access",
@@ -126,7 +126,7 @@ export const mockTicketTypes: TicketType[] = [
     updated_at: new Date("2025-11-01T08:00:00Z"),
   },
   {
-    id: "b2c3d4e5-f6a7-4b5c-9d0e-1f2a3b4c5d6e",
+    id: "b2a3d4e5-f6a7-4b5c-9d0e-1f2a3b4c5d6e",
     event_id: 2,
     name: "General Admission",
     description: "Standard ticket for general event access",
