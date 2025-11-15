@@ -1,10 +1,23 @@
 'use client';
 
 import Link from "next/link";
+import { useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
-import { SignIn } from "@stackframe/stack";
+import { SignIn, useUser } from "@stackframe/stack";
 
 export default function SignInPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const user = useUser({ or: "return-null" });
+  const next = searchParams?.get("next");
+
+  useEffect(() => {
+    if (user && next) {
+      router.replace(next);
+    }
+  }, [user, next, router]);
+
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-md flex-col items-center justify-center gap-6 text-center text-slate-300">
       <div className="space-y-2">
@@ -15,7 +28,7 @@ export default function SignInPage() {
       </div>
 
       <div className="w-full rounded-lg border border-slate-800 bg-slate-900 p-6 shadow-sm">
-        <SignIn />
+        <SignIn automaticRedirect={true} />
       </div>
 
       <p className="text-sm text-slate-400">
