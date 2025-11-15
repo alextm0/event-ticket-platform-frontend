@@ -15,7 +15,7 @@ export default function SignUpPage() {
       </div>
 
       <div className="w-full rounded-lg border border-slate-800 bg-slate-900 p-6 shadow-sm">
-        <SignUp />
+        <SignUp automaticRedirect={true} />
       </div>
 
       <p className="text-sm text-slate-400">

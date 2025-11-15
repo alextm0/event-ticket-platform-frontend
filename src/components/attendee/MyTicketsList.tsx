@@ -1,22 +1,22 @@
-'use client';
-import { mockTickets } from '@/lib/mocked-data';
-import { useUser } from '@stackframe/stack';
-import React, { useMemo, useState } from 'react'
-import TicketCard from './TicketCard';
-import SelectSortingCriterias from './SelectSortingCriterias';
-import AddFiltersButton from './AddFiltersButton';
+"use client";
+import { mockTickets } from "@/lib/mocked-data";
+import type Ticket from "@/types/ticket-model";
+import { useUser } from "@stackframe/stack";
+import React, { useMemo, useState } from "react";
+import TicketCard from "./TicketCard";
+import SelectSortingCriterias from "./SelectSortingCriterias";
+import AddFiltersButton from "./AddFiltersButton";
 
 function MyTicketsList() {
   
-    const [sortCriteria, setSortCriteria] = useState<string>('created_at_desc');
+    const [sortCriteria, setSortCriteria] = useState<string>("created_at_desc");
     const [filtersList, applyFilters] = useState<string[]>([]);
     const user = useUser({or: "return-null"}) ?? null
-    const userId = user?.id;
-    let tickets = mockTickets;
+    const tickets = mockTickets;
     // TODO: Replace the request below with a real API call to fetch tickets for the authenticated user
 
     // try{
-    //     const res = await fetch(`/api/my-tickets/{userId}`, {
+    //     const res = await fetch(`/api/my-tickets/${user?.id}`, {
     //         method: 'GET',
     //         headers: {
     //             'Content-Type': 'application/json',
@@ -47,6 +47,10 @@ function MyTicketsList() {
         return ticketsCopy;
     }
   }, [tickets, sortCriteria]);
+
+    if (!user) {
+      return <p className="text-slate-400">Loading your tickets...</p>;
+    }
     return (
     <div className="space-y-4">
         <div className="flex items-center justify-between">
@@ -56,7 +60,7 @@ function MyTicketsList() {
         </div>
         <div className="space-y-3">
             {sortedTickets && sortedTickets.length > 0 ? (
-                sortedTickets.map((ticket: any) => (
+                sortedTickets.map((ticket: Ticket) => (
                     <TicketCard key={String(ticket.id)} ticket={ticket} />
                 ))
             ) : (

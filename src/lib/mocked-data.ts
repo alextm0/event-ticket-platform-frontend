@@ -1,6 +1,5 @@
 import { Event } from "@/types";
 import Ticket from "@/types/ticket-model";
-import { randomUUID } from "crypto";
 
 export const mockedEvents: Event[] = [
   {
