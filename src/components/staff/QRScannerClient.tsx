@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import jsQR from "jsqr";
 import { mockTickets } from "@/lib/mocked-data";
 
@@ -21,6 +21,27 @@ export default function QRScannerClient({ eventId }: Props) {
   const [popup, setPopup] = useState<ValidationPopup>({ show: false, isValid: false, message: "" });
   const lastScannedRef = useRef<string>("");
   const popupRef = useRef<ValidationPopup>(popup);
+
+  const validateTicketLocal = useCallback(
+    (data: string) => {
+      const ticket = mockTickets.find(
+        (t) => t.qr_code === data && (!eventId || t.event_id === eventId),
+      );
+
+      if (!ticket) {
+        setPopup({ show: true, isValid: false, message: "Invalid" });
+        return;
+      }
+
+      if (ticket.status === "CHECKED_IN") {
+        setPopup({ show: true, isValid: false, message: "Already checked in" });
+        return;
+      }
+
+      setPopup({ show: true, isValid: true, message: "Valid" });
+    },
+    [eventId],
+  );
 
 
   useEffect(() => {
@@ -89,23 +110,7 @@ export default function QRScannerClient({ eventId }: Props) {
     };
   }, [eventId, validateTicketLocal]);
 
-  //TO DO: Replace with real backend validation
-  
-  const validateTicketLocal = useCallback((data: string) => {
-    const ticket = mockTickets.find((t) => t.qr_code === data && (!eventId || t.event_id === eventId));
-
-    if (!ticket) {
-      setPopup({ show: true, isValid: false, message: "Invalid" });
-      return;
-    }
-
-    if (ticket.status === "CHECKED_IN") {
-      setPopup({ show: true, isValid: false, message: "Already checked in" });
-      return;
-    }
-
-    setPopup({ show: true, isValid: true, message: "Valid" });
-  }, [eventId]);
+  //TODO: Replace with real backend validation
 
   return (
     <>
