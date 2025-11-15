@@ -29,6 +29,7 @@ export default function QRScannerClient({ eventId }: Props) {
 
   useEffect(() => {
     let animationFrameId: number | null = null;
+    const videoElement = videoRef.current;
 
     async function startCamera() {
       try {
@@ -82,24 +83,29 @@ export default function QRScannerClient({ eventId }: Props) {
 
     return () => {
       if (animationFrameId) cancelAnimationFrame(animationFrameId);
-      if (videoRef.current?.srcObject) {
-        (videoRef.current.srcObject as MediaStream).getTracks().forEach((track) => track.stop());
+      if (videoElement?.srcObject) {
+        (videoElement.srcObject as MediaStream).getTracks().forEach((track) => track.stop());
       }
     };
-  }, [eventId]);
+  }, [eventId, validateTicketLocal]);
 
   //TO DO: Replace with real backend validation
   
-  function validateTicketLocal(data: string) {
-    const ticket = mockTickets.find((t) => t.qr_code === data);
+  const validateTicketLocal = useCallback((data: string) => {
+    const ticket = mockTickets.find((t) => t.qr_code === data && (!eventId || t.event_id === eventId));
 
     if (!ticket) {
       setPopup({ show: true, isValid: false, message: "Invalid" });
       return;
     }
 
+    if (ticket.status === "CHECKED_IN") {
+      setPopup({ show: true, isValid: false, message: "Already checked in" });
+      return;
+    }
+
     setPopup({ show: true, isValid: true, message: "Valid" });
-  }
+  }, [eventId]);
 
   return (
     <>
@@ -112,7 +118,6 @@ export default function QRScannerClient({ eventId }: Props) {
 
       {popup.show && (
         <div
-          suppressHydrationWarning
           style={{
             position: "fixed",
             top: "50%",
