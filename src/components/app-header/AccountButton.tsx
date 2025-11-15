@@ -1,6 +1,6 @@
-import { useUser, UserButton } from '@stackframe/stack'
-import Link from 'next/link';
-import React from 'react'
+import { useUser, UserButton } from "@stackframe/stack";
+import Link from "next/link";
+import React from "react";
 
 function AccountButton() {
     const user = useUser({ or: "return-null" });
@@ -11,4 +11,4 @@ function AccountButton() {
     )
 }
 
-export default AccountButton
+export default AccountButton;

@@ -1,6 +1,7 @@
 import { Event } from "@/types";
 import Ticket from "@/types/ticket-model";
 import { randomUUID } from "crypto";
+import { TicketType } from "@/types/ticket-type-model";
 
 export const mockedEvents: Event[] = [
   {
@@ -84,5 +85,56 @@ export const mockTickets: Ticket[] = [
     created_at: new Date("2025-11-03T12:00:00Z"),
     updated_at: new Date("2025-11-03T12:00:00Z"),
     event_id: "a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d",
+  },
+];
+
+export const mockTicketTypes: TicketType[] = [
+  {
+    id: "a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d",
+    event_id: 1,
+    name: "VIP",
+    description: "Premium VIP access with exclusive benefits",
+    price: 299.99,
+    total_quantity: 100,
+    sold_count: 87,
+    is_active: true,
+    created_at: new Date("2025-11-01T08:00:00Z"),
+    updated_at: new Date("2025-11-01T08:00:00Z"),
+  },
+  {
+    id: "e5f6a7b8-c9d0-4e5f-2a3b-4c5d6e7f8a9b",
+    event_id: 1,
+    name: "General Admission",
+    description: "Standard ticket for general event access",
+    price: 79.99,
+    total_quantity: 500,
+    sold_count: 456,
+    is_active: true,
+    created_at: new Date("2025-11-01T08:00:00Z"),
+    updated_at: new Date("2025-11-01T08:00:00Z"),
+  },
+  {
+    id: "d4e5f6a7-b8c9-4d5e-1f2a-3b4c5d6e7f8a",
+    event_id: 2,
+    name: "Student",
+    description: "Discounted tickets for students",
+    price: 39.99,
+    total_quantity: 200,
+    sold_count: 178,
+    is_active: true,
+    created_at: new Date("2025-11-01T08:00:00Z"),
+    updated_at: new Date("2025-11-01T08:00:00Z"),
+  },
+  {
+    id: "b2a3d4e5-f6a7-4b5c-9d0e-1f2a3b4c5d6e",
+    event_id: 2,
+    name: "General Admission",
+    description: "Standard ticket for general event access",
+    price: 79.99,
+    total_quantity: 500,
+    sold_count: 456,
+    is_active: true,
+    created_at: new Date("2025-11-01T08:00:00Z"),
+    updated_at: new Date("2025-11-01T08:00:00Z"),
   },
 ];
