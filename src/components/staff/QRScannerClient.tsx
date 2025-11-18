@@ -2,7 +2,6 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import jsQR from "jsqr";
-import { mockTickets } from "@/lib/mocked-data";
 
 interface ValidationPopup {
   show: boolean;
@@ -22,27 +21,39 @@ export default function QRScannerClient({ eventId }: Props) {
   const lastScannedRef = useRef<string>("");
   const popupRef = useRef<ValidationPopup>(popup);
 
-  const validateTicketLocal = useCallback(
-    (data: string) => {
-      const ticket = mockTickets.find(
-        (t) => t.qr_code === data && (!eventId || t.event_id === eventId),
-      );
-
-      if (!ticket) {
-        setPopup({ show: true, isValid: false, message: "Invalid" });
+  const validateTicket = useCallback(
+    async (data: string) => {
+      if (!eventId) {
+        setPopup({ show: true, isValid: false, message: "Missing event ID for validation." });
         return;
       }
 
-      if (ticket.status === "CHECKED_IN") {
-        setPopup({ show: true, isValid: false, message: "Already checked in" });
-        return;
-      }
+      try {
+        const response = await fetch("/api/v1/ticket-validations", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ ticketId: data, eventId }),
+        });
 
-      setPopup({ show: true, isValid: true, message: "Valid" });
+        if (!response.ok) {
+          const errorBody = await response.json().catch(() => ({}));
+          const message = errorBody?.message || errorBody?.title || "Ticket rejected";
+          setPopup({ show: true, isValid: false, message });
+          return;
+        }
+
+        const result = await response.json();
+        const message = result.message || "Ticket validated";
+        setPopup({ show: true, isValid: true, message });
+      } catch (err) {
+        console.error("Validation error:", err);
+        setPopup({ show: true, isValid: false, message: "Validation failed. Try again." });
+      }
     },
     [eventId],
   );
-
 
   useEffect(() => {
     popupRef.current = popup;
@@ -66,7 +77,6 @@ export default function QRScannerClient({ eventId }: Props) {
         await videoRef.current.play();
 
         const scan = () => {
-          // don't start a new validation while popup is visible
           if (popupRef.current.show) {
             animationFrameId = requestAnimationFrame(scan);
             return;
@@ -87,7 +97,7 @@ export default function QRScannerClient({ eventId }: Props) {
             if (code && code.data !== lastScannedRef.current) {
               lastScannedRef.current = code.data;
               setQrData(code.data);
-              validateTicketLocal(code.data);
+              validateTicket(code.data);
             }
           }
           animationFrameId = requestAnimationFrame(scan);
@@ -108,9 +118,7 @@ export default function QRScannerClient({ eventId }: Props) {
         (videoElement.srcObject as MediaStream).getTracks().forEach((track) => track.stop());
       }
     };
-  }, [eventId, validateTicketLocal]);
-
-  //TODO: Replace with real backend validation
+  }, [eventId, validateTicket]);
 
   return (
     <>

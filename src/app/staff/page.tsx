@@ -10,7 +10,7 @@ export default async function StaffPage() {
       <div>
         <h1 className="text-3xl font-bold text-slate-100">Staff workspace</h1>
         <p className="mt-2 text-slate-400">
-          You can access this area because you hold the <span className="font-medium">staff</span> role in Stack Auth.
+          You can access this area because you hold the <span className="font-medium">staff</span> role.
         </p>
       </div>
 

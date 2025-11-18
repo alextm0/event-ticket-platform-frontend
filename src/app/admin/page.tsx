@@ -23,12 +23,8 @@ export default async function AdminPage() {
             your future API.
           </li>
           <li>
-            Gate any sensitive settings behind the existing Stack Auth role checks so only admins
+            Gate any sensitive settings behind the existing role checks so only admins
             can access them.
-          </li>
-          <li>
-            Use the existing navigation link to provide quick access for the 1-2 pre-seeded admin
-            accounts in Stack Auth.
           </li>
         </ul>
       </section>

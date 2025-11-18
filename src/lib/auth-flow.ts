@@ -1,22 +1,39 @@
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 
-import { ensureAppProfile, type AppRole } from "./user-profile";
+import type { AppRole } from "./user-profile";
 import ROLE_DESTINATIONS from "@/utils/role-destinations";
-import { stackServerApp } from "@/stack/server";
 
 interface FetchAuthContextOptions {
   allowGrant?: boolean;
   desiredRole?: AppRole;
 }
 
+// Simple session-based auth context - replace with actual backend integration
 export async function fetchAuthContext(options: FetchAuthContextOptions = {}) {
-  const user = await stackServerApp.getUser({ or: "redirect" });
-  const { profile, needsOnboarding } = await ensureAppProfile(user, {
-    allowGrant: options.allowGrant,
-    desiredRole: options.desiredRole,
-  });
+  const cookieStore = await cookies();
+  const token = cookieStore.get("authToken")?.value;
+  const role = cookieStore.get("userRole")?.value as AppRole | undefined;
+  const userId = cookieStore.get("userId")?.value;
 
-  return { user, profile, needsOnboarding };
+  if (!token || !role || !userId) {
+    return {
+      user: null,
+      profile: null,
+      needsOnboarding: true,
+    };
+  }
+
+  const profile = {
+    appUserId: userId,
+    role: role,
+  };
+
+  return {
+    user: { id: userId, email: cookieStore.get("userEmail")?.value || "" },
+    profile,
+    needsOnboarding: false,
+  };
 }
 
 export function resolveRoleDestination(role: AppRole | null | undefined) {
