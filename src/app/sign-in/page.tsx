@@ -1,34 +1,140 @@
 'use client';
 
 import Link from "next/link";
-import { useEffect } from "react";
+import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import type { AppRole } from "@/lib/user-profile";
+import { SESSION_UPDATED_EVENT } from "@/lib/session-events";
 
-import { SignIn, useUser } from "@stackframe/stack";
+const ROLES: { value: AppRole; label: string }[] = [
+  { value: "admin", label: "Admin" },
+  { value: "organizer", label: "Organizer" },
+  { value: "staff", label: "Staff" },
+  { value: "attendee", label: "Attendee" },
+];
 
 export default function SignInPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const user = useUser({ or: "return-null" });
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [role, setRole] = useState<AppRole>("attendee");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const next = searchParams?.get("next");
 
-  useEffect(() => {
-    if (user && next) {
-      router.replace(next);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      // Use Next.js API route to avoid CORS issues
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, role }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Store session in localStorage for client-side checks
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('authToken', data.token || 'mock-token');
+          localStorage.setItem('userId', data.userId || email.split('@')[0] || 'user');
+          localStorage.setItem('userEmail', data.email || email);
+          localStorage.setItem('userRole', data.role?.toLowerCase() || role);
+          window.dispatchEvent(new Event(SESSION_UPDATED_EVENT));
+        }
+        
+        router.push(next || "/");
+      } else {
+        const data = await response.json();
+        setError(data.message || "Invalid email or password");
+      }
+    } catch (err) {
+      setError("An error occurred. Please try again.");
+      console.error("Login error:", err);
+    } finally {
+      setLoading(false);
     }
-  }, [user, next, router]);
+  };
 
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-md flex-col items-center justify-center gap-6 text-center text-slate-300">
       <div className="space-y-2">
         <h1 className="text-3xl font-semibold text-slate-100">Sign in to continue</h1>
         <p className="text-sm text-slate-400">
-          Use your Stack Auth credentials to access the event ticketing platform.
+          Enter your credentials and select your role to access the event ticketing platform.
         </p>
       </div>
 
       <div className="w-full rounded-lg border border-slate-800 bg-slate-900 p-6 shadow-sm">
-        <SignIn automaticRedirect={true} />
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <div className="rounded bg-red-500/10 border border-red-500/20 p-3 text-sm text-red-400">
+              {error}
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <label htmlFor="email" className="block text-sm font-medium text-slate-300">
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="w-full rounded border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100 placeholder:text-slate-500 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+              placeholder="you@example.com"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="password" className="block text-sm font-medium text-slate-300">
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="w-full rounded border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100 placeholder:text-slate-500 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+              placeholder="••••••••"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="role" className="block text-sm font-medium text-slate-300">
+              Role
+            </label>
+            <select
+              id="role"
+              value={role}
+              onChange={(e) => setRole(e.target.value as AppRole)}
+              required
+              className="w-full rounded border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+            >
+              {ROLES.map((r) => (
+                <option key={r.value} value={r.value} className="bg-slate-800">
+                  {r.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full rounded bg-sky-500 px-4 py-2 font-medium text-slate-900 hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {loading ? "Signing in..." : "Sign in"}
+          </button>
+        </form>
       </div>
 
       <p className="text-sm text-slate-400">

@@ -1,21 +1,186 @@
 'use client';
 
 import Link from "next/link";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import type { AppRole } from "@/lib/user-profile";
+import { SESSION_UPDATED_EVENT } from "@/lib/session-events";
 
-import { SignUp } from "@stackframe/stack";
+const ROLES: { value: AppRole; label: string }[] = [
+  { value: "organizer", label: "Organizer" },
+  { value: "staff", label: "Staff" },
+  { value: "attendee", label: "Attendee" },
+];
 
 export default function SignUpPage() {
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [role, setRole] = useState<AppRole>("attendee");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [signupEnabled, setSignupEnabled] = useState(true);
+
+  useEffect(() => {
+    // Check if signup is enabled
+    fetch("/api/auth/signupStatus")
+      .then((res) => res.json())
+      .then((data) => setSignupEnabled(data.enabled ?? true))
+      .catch(() => setSignupEnabled(true)); // Default to enabled if check fails
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          name: fullName, 
+          email, 
+          password, 
+          role: role.toUpperCase() 
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Store session in localStorage for client-side checks
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('authToken', data.token || 'mock-token');
+          localStorage.setItem('userId', data.userId || data.id || email.split('@')[0] || 'user');
+          localStorage.setItem('userEmail', data.email || email);
+          localStorage.setItem('userRole', data.role?.toLowerCase() || role);
+          window.dispatchEvent(new Event(SESSION_UPDATED_EVENT));
+        }
+        
+        router.push("/");
+      } else {
+        const data = await response.json();
+        setError(data.message || "Failed to create account");
+      }
+    } catch (err) {
+      setError("An error occurred. Please try again.");
+      console.error("Signup error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!signupEnabled) {
+    return (
+      <div className="mx-auto flex min-h-[70vh] max-w-md flex-col items-center justify-center gap-6 text-center text-slate-300">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-semibold text-slate-100">Sign up is disabled</h1>
+          <p className="text-sm text-slate-400">
+            New user registration is currently not available.
+          </p>
+        </div>
+        <Link
+          href="/sign-in"
+          className="rounded bg-sky-500 px-4 py-2 font-medium text-slate-900 hover:bg-sky-400"
+        >
+          Sign in instead
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-md flex-col items-center justify-center gap-6 text-center text-slate-300">
       <div className="space-y-2">
         <h1 className="text-3xl font-semibold text-slate-100">Create your account</h1>
         <p className="text-sm text-slate-400">
-          Complete sign-up with Stack Auth to join the event ticketing platform.
+          Sign up to join the event ticketing platform.
         </p>
       </div>
 
       <div className="w-full rounded-lg border border-slate-800 bg-slate-900 p-6 shadow-sm">
-        <SignUp automaticRedirect={true} />
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <div className="rounded bg-red-500/10 border border-red-500/20 p-3 text-sm text-red-400">
+              {error}
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <label htmlFor="fullName" className="block text-sm font-medium text-slate-300">
+              Full Name
+            </label>
+            <input
+              id="fullName"
+              type="text"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              required
+              className="w-full rounded border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100 placeholder:text-slate-500 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+              placeholder="John Doe"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="email" className="block text-sm font-medium text-slate-300">
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className="w-full rounded border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100 placeholder:text-slate-500 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+              placeholder="you@example.com"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="password" className="block text-sm font-medium text-slate-300">
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={8}
+              className="w-full rounded border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100 placeholder:text-slate-500 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+              placeholder="••••••••"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="role" className="block text-sm font-medium text-slate-300">
+              Role
+            </label>
+            <select
+              id="role"
+              value={role}
+              onChange={(e) => setRole(e.target.value as AppRole)}
+              required
+              className="w-full rounded border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
+            >
+              {ROLES.map((r) => (
+                <option key={r.value} value={r.value} className="bg-slate-800">
+                  {r.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full rounded bg-sky-500 px-4 py-2 font-medium text-slate-900 hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {loading ? "Creating account..." : "Sign up"}
+          </button>
+        </form>
       </div>
 
       <p className="text-sm text-slate-400">

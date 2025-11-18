@@ -1,18 +1,21 @@
 import { NextResponse } from "next/server";
-import { ensureAppProfile } from "@/lib/user-profile";
-import { stackServerApp } from "@/stack/server";
+import { cookies } from "next/headers";
 import { serverRuntimeConfig } from "@/config/server-env";
 
 export async function POST(request: Request) {
   try {
-    const user = await stackServerApp.getUser();
-    if (!user) {
+    const cookieStore = await cookies();
+    const userId = cookieStore.get("userId")?.value;
+    const userRole = cookieStore.get("userRole")?.value;
+    const authToken = cookieStore.get("authToken")?.value;
+
+    if (!userId || !authToken) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const { profile } = await ensureAppProfile(user, { allowGrant: false });
-    if (!profile) {
-      return NextResponse.json({ message: "Unauthorized: Missing profile" }, { status: 401 });
+    // Only staff can validate tickets
+    if (userRole !== "staff") {
+      return NextResponse.json({ message: "Unauthorized: Staff role required" }, { status: 403 });
     }
 
     const { ticketId, eventId } = await request.json();
@@ -20,21 +23,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "ticketId and eventId are required" }, { status: 400 });
     }
 
-    const { accessToken } = await user.currentSession.getTokens();
-    if (!accessToken) {
-      return NextResponse.json({ message: "Unauthorized: No access token" }, { status: 401 });
-    }
-
     const backendResponse = await fetch(`${serverRuntimeConfig.backendApiUrl}/api/v1/events/${eventId}/ticket-validations`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${accessToken}`,
+        Authorization: `Bearer ${authToken}`,
         "Content-Type": "application/json",
-        "X-User-Id": profile.appUserId,
+        "X-User-Id": userId,
       },
       body: JSON.stringify({ qrCodeId: ticketId }),
     });
-
 
     if (!backendResponse.ok) {
       const errorBody = await backendResponse.json();

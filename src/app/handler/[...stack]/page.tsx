@@ -1,9 +1,9 @@
-import { StackHandler } from "@stackframe/stack";
+// Stack Auth handler removed
+// This route is no longer needed after removing Stack Auth
 
-import { stackServerApp } from "../../../stack/server";
+import { redirect } from "next/navigation";
 
-type StackHandlerProps = Parameters<typeof StackHandler>[0];
-
-export default function Handler(props: StackHandlerProps) {
-  return <StackHandler fullPage app={stackServerApp} routeProps={props} />;
+export default function Handler() {
+  // Redirect to home page since Stack Auth is no longer used
+  redirect("/");
 }

@@ -1,15 +1,21 @@
-import { UUID } from "crypto";
-
 type Ticket = {
-    id: UUID;
-    order_id: UUID;
-    event_id: UUID;
-    ticket_type: string,
-    qr_code: string,
-    status: "DEFAULT" | "PURCHASED" | "CHECKED_IN" | "NULL",
-    checked_in_at: Date | null,
-    created_at: Date,
-    updated_at: Date,
+  id: string;
+  order_id: string;
+  event_id: string;
+  ticket_type: string;
+  qr_code: string;
+  status: string;
+  checked_in_at: string | null;
+  created_at: string;
+  updated_at: string;
+  event_title?: string;
+  event_location?: string;
+  event_start_time?: string;
+  event_end_time?: string;
+  event_description?: string;
+  ticket_type_name?: string;
+  qr_code_id?: string;
+  purchase_date?: string;
 };
 
 export default Ticket;

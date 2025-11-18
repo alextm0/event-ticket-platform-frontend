@@ -1,12 +1,11 @@
-
 import Link from "next/link";
-import { stackServerApp } from "@/stack/server";
+import { requireRole } from "@/lib/auth-guards";
 import { getEvents } from "@/lib/backend-client";
 import { Event } from "@/types";
 
 export default async function OrganizerDashboard() {
-  const user = await stackServerApp.getUser({ or: "redirect" });
-  const events = await getEvents(user, { useMockData: true });
+  await requireRole("organizer", { allowGrant: false });
+  const events = await getEvents({ useMockData: true });
 
   return (
     <div className="container mx-auto px-4 py-8">

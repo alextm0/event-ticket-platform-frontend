@@ -1,11 +1,6 @@
 import "server-only";
 
-import { StackServerApp } from "@stackframe/stack";
+// Stack Auth removed - this file is no longer used
+// If you need to re-add Stack Auth, restore the original implementation
 
-import { stackServerConfig } from "@/config/server-env";
-
-export const stackServerApp = new StackServerApp({
-  projectId: stackServerConfig.projectId,
-  secretServerKey: stackServerConfig.secretServerKey,
-  tokenStore: "nextjs-cookie",
-});
+export const stackServerApp = null;

@@ -1,15 +1,4 @@
-import { StackClientApp } from "@stackframe/stack";
+// Stack Auth removed - this file is no longer used
+// If you need to re-add Stack Auth, restore the original implementation
 
-import { stackClientConfig } from "@/config/env";
-
-export const stackClientApp = new StackClientApp({
-  projectId: stackClientConfig.projectId,
-  publishableClientKey: stackClientConfig.publishableClientKey,
-  tokenStore: "nextjs-cookie",
-  urls: {
-    signIn: "/sign-in",
-    signUp: "/sign-up",
-    afterSignUp: "/onboarding",
-    afterSignIn: "/",
-  },
-});
+export const stackClientApp = null;

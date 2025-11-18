@@ -1,21 +1,11 @@
-const clientEnv = {
-  projectId: process.env.NEXT_PUBLIC_STACK_PROJECT_ID,
-  publishableClientKey: process.env.NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY,
-} as const;
-
-function requireEnv(value: string | undefined, key: string) {
-  if (!value) {
-    throw new Error(
-      `Environment variable ${key} is not defined. Add it to your .env.local before starting the dev server.`,
-    );
-  }
-  return value;
-}
+// Stack Auth configuration removed
+// This file is no longer needed but kept for compatibility
+// If you need to re-add Stack Auth, restore the original implementation
 
 export const stackClientConfig = {
-  projectId: requireEnv(clientEnv.projectId, "NEXT_PUBLIC_STACK_PROJECT_ID"),
-  publishableClientKey: requireEnv(
-    clientEnv.publishableClientKey,
-    "NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY",
-  ),
+  projectId: "",
+  publishableClientKey: "",
 } as const;
+
+// Backend API URL for client-side use
+export const backendApiUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://localhost:8080";

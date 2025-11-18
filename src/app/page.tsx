@@ -5,10 +5,13 @@ import { fetchAuthContext, redirectToRoleDashboard } from "@/lib/auth-flow";
 export default async function Home() {
   const { profile, needsOnboarding } = await fetchAuthContext({ allowGrant: false });
 
+  // In bypass mode, profile will always exist, so this check is mainly for non-bypass
   if (needsOnboarding || !profile) {
-    redirect("/onboarding");
+    // In bypass mode, this won't happen, but keep for safety
+    redirect("/sign-in");
   }
 
+  // Redirect to role dashboard
   redirectToRoleDashboard(profile?.role ?? null);
 
   return (
