@@ -20,12 +20,14 @@ export default function SignInPage() {
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<AppRole>("attendee");
   const [error, setError] = useState("");
+  const [errorDetails, setErrorDetails] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const next = searchParams?.get("next");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setErrorDetails([]);
     setLoading(true);
 
     try {
@@ -50,8 +52,42 @@ export default function SignInPage() {
         
         router.push(next || "/");
       } else {
-        const data = await response.json();
-        setError(data.message || "Invalid email or password");
+        let message = "Unexpected error, please try again later.";
+        let details: string[] = [];
+        try {
+          const data = await response.json();
+          const title = data?.title;
+          const backendMessage = data?.detail ?? data?.message;
+          if (Array.isArray(data?.errors)) {
+            details = data.errors
+              .map((err: unknown) => {
+                if (typeof err === "string") return err;
+                if (err && typeof err === "object" && "message" in err && typeof err.message === "string") {
+                  return err.message;
+                }
+                return JSON.stringify(err);
+              })
+              .filter((msg: string) => msg.length > 0);
+          }
+
+          if (response.status === 401) {
+            if (title === "Invalid credentials") {
+              message = backendMessage ?? "Invalid email or password";
+            } else if (title === "Invalid role") {
+              message =
+                backendMessage ??
+                "Invalid role. Please choose the correct role for this account.";
+            } else {
+              message = backendMessage ?? "Invalid email or password";
+            }
+          } else {
+            message = backendMessage ?? message;
+          }
+        } catch (err) {
+          console.error("Failed to parse login error", err);
+        }
+        setError(message);
+        setErrorDetails(details);
       }
     } catch (err) {
       setError("An error occurred. Please try again.");
@@ -75,6 +111,13 @@ export default function SignInPage() {
           {error && (
             <div className="rounded bg-red-500/10 border border-red-500/20 p-3 text-sm text-red-400">
               {error}
+              {errorDetails.length > 0 && (
+                <ul className="mt-2 list-inside list-disc space-y-1 text-xs text-red-200">
+                  {errorDetails.map((detail, index) => (
+                    <li key={`${detail}-${index}`}>{detail}</li>
+                  ))}
+                </ul>
+              )}
             </div>
           )}
 
