@@ -1,5 +1,5 @@
 import { serverRuntimeConfig } from "@/config/server-env";
-import { Event, PublishedEvent } from "@/types";
+import { Event, PublishedEvent, EventTicketType } from "@/types";
 import Ticket from "@/types/ticket-model";
 import { mockedEvents } from "@/lib/mocked-data";
 import { cookies } from "next/headers";
@@ -25,7 +25,7 @@ async function getAuthToken(): Promise<string | null> {
   return cookieStore.get("authToken")?.value || null;
 }
 
-async function getCurrentUserId(): Promise<string | null> {
+export async function getCurrentUserId(): Promise<string | null> {
   const cookieStore = await cookies();
   return cookieStore.get("userId")?.value || null;
 }
@@ -114,7 +114,12 @@ export async function createBackendUser(
 }
 
 export async function getEvents(
-  options: { timeoutMs?: number; maxRetries?: number; useMockData?: boolean } = {},
+  options: { 
+    timeoutMs?: number; 
+    maxRetries?: number; 
+    useMockData?: boolean;
+    organizerId?: string;
+  } = {},
 ): Promise<Event[]> {
   // Handle null/undefined options
   if (!options) {
@@ -132,6 +137,22 @@ export async function getEvents(
     throw new Error("No authentication token available.");
   }
 
+  // Build URL with query params
+  const url = new URL(`${serverRuntimeConfig.backendApiUrl}/api/v1/events`);
+  if (options.organizerId) {
+    url.searchParams.set("organizerId", options.organizerId);
+  }
+
+  // Build headers
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+  };
+  
+  // If organizerId is provided, also add X-User-Id header (backend might use either)
+  if (options.organizerId) {
+    headers["X-User-Id"] = options.organizerId;
+  }
+
   let attempt = 0;
   let delayMs = 500;
   let lastError: unknown = null;
@@ -141,18 +162,24 @@ export async function getEvents(
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
-      const response = await fetch(`${serverRuntimeConfig.backendApiUrl}/api/v1/events`, {
+      const response = await fetch(url.toString(), {
         method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers,
         signal: controller.signal,
       });
 
       clearTimeout(timeout);
 
       if (response.ok) {
-        return await response.json();
+        const data = await response.json();
+        // Handle paginated response (Spring Data Page structure)
+        if (Array.isArray(data)) {
+          return data;
+        }
+        if (Array.isArray(data?.content)) {
+          return data.content;
+        }
+        throw new Error("Events response does not contain an array.");
       }
 
       if (response.status >= 500 && response.status < 600 && attempt < maxRetries) {
@@ -249,6 +276,51 @@ export async function getPublishedEvent(eventId: string): Promise<PublishedEvent
     return data as PublishedEvent;
   } catch (error) {
     console.error(`Failed to fetch published event ${eventId}`, error);
+    throw error;
+  }
+}
+
+export async function getEventTicketTypes(eventId: string): Promise<EventTicketType[]> {
+  try {
+    const token = await getAuthToken();
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    const response = await fetch(
+      `${serverRuntimeConfig.backendApiUrl}/api/v1/events/${eventId}/ticket-types`,
+      {
+        method: "GET",
+        headers,
+        cache: "no-store",
+      },
+    );
+
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(
+        `Failed to fetch ticket types (${response.status} ${response.statusText}): ${body}`,
+      );
+    }
+
+    const data = await response.json();
+
+    // Handle both array and paginated responses
+    if (Array.isArray(data)) {
+      return data as EventTicketType[];
+    }
+
+    if (Array.isArray(data?.content)) {
+      return data.content as EventTicketType[];
+    }
+
+    throw new Error("Ticket types response does not contain an array.");
+  } catch (error) {
+    console.error(`Failed to fetch ticket types for event ${eventId}`, error);
     throw error;
   }
 }

@@ -16,15 +16,10 @@ export async function POST(request: Request) {
       body: JSON.stringify({ name, email, password, role }),
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      return NextResponse.json(
-        { message: errorData.message || "Signup failed" },
-        { status: response.status }
-      );
-    }
-
     const data = await response.json();
+    if (!response.ok) {
+      return NextResponse.json(data, { status: response.status });
+    }
 
     // Set cookies for server-side auth
     const cookieStore = await cookies();

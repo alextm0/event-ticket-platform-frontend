@@ -20,6 +20,18 @@ export interface PublishedEventTicketType {
   remainingQuantity?: number;
 }
 
+export interface EventTicketType {
+  id: string;
+  name: string;
+  price: number;
+  totalQuantity: number;
+  soldCount: number;
+  active: boolean;
+  currency?: string;
+  description?: string;
+  eventId?: string;
+}
+
 export interface PublishedEvent {
   id: string;
   title: string;
