@@ -2,15 +2,16 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
 import { serverRuntimeConfig } from "@/config/server-env";
+import { logger } from "@/lib/logger";
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     ticketId: string;
-  };
+  }>;
 }
 
 export async function GET(_request: Request, { params }: RouteParams) {
-  const { ticketId } = params;
+  const { ticketId } = await params;
 
   if (!ticketId) {
     return NextResponse.json({ message: "ticketId is required" }, { status: 400 });
@@ -51,7 +52,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
     const data = await response.json();
     return NextResponse.json(data);
   } catch (error) {
-    console.error("Failed to fetch ticket QR code", error);
+    logger.error("Failed to fetch ticket QR code", { ticketId }, error);
     return NextResponse.json({ message: "Internal Server Error" }, { status: 500 });
   }
 }

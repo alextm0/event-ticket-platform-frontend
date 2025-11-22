@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { serverRuntimeConfig } from "@/config/server-env";
+import { logger } from "@/lib/logger";
 
 export async function POST(request: Request) {
   try {
@@ -24,14 +25,14 @@ export async function POST(request: Request) {
     }
 
     const backendUrl = `${serverRuntimeConfig.backendApiUrl}/api/v1/events/${eventId}/ticket-validations`;
-    console.log(`Calling backend API: ${backendUrl}`);
     
     // Build request body - backend might expect validationMethod field
     const requestBody = {
       qrCodeId: ticketId,
-      validationMethod: "SCAN", // Add validation method for backend
+      validationMethod: "SCAN",
     };
-    console.log(`Request body:`, requestBody);
+
+    logger.logBackendRequest("POST", backendUrl, { eventId, ticketId });
 
     let backendResponse: Response;
     try {
@@ -45,7 +46,7 @@ export async function POST(request: Request) {
         body: JSON.stringify(requestBody),
       });
     } catch (fetchError) {
-      console.error("Failed to connect to backend:", fetchError);
+      logger.error("Failed to connect to backend API", { eventId, ticketId }, fetchError);
       const errorMessage = fetchError instanceof Error ? fetchError.message : "Unknown fetch error";
       return NextResponse.json(
         {
@@ -57,8 +58,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Log backend response status
-    console.log(`Backend response status: ${backendResponse.status}`);
+    logger.logBackendResponse(backendResponse.status, { eventId, ticketId });
 
     if (!backendResponse.ok) {
       // Try to get error body, but handle cases where it might not be JSON
@@ -69,12 +69,10 @@ export async function POST(request: Request) {
       } catch {
         errorBody = {
           message: `Backend returned status ${backendResponse.status}`,
-          responseText: responseText.substring(0, 500), // Limit length
         };
       }
       
-      console.error(`Backend error (${backendResponse.status}):`, errorBody);
-      console.error(`Backend response text:`, responseText.substring(0, 500));
+      logger.logBackendError(backendResponse.status, errorBody, responseText, { eventId, ticketId });
       
       return NextResponse.json(errorBody, { status: backendResponse.status });
     }
@@ -84,20 +82,18 @@ export async function POST(request: Request) {
     try {
       data = JSON.parse(responseText);
     } catch (parseError) {
-      console.error("Failed to parse backend response as JSON:", responseText.substring(0, 500));
+      logger.error("Failed to parse backend response as JSON", { eventId, ticketId, status: backendResponse.status }, parseError);
       return NextResponse.json(
         {
           message: "Backend returned invalid JSON response",
-          responseText: responseText.substring(0, 500),
         },
         { status: 500 }
       );
     }
 
-    console.log("Backend validation successful:", data);
     return NextResponse.json(data, { status: backendResponse.status });
   } catch (error) {
-    console.error("Error validating ticket:", error);
+    logger.error("Error validating ticket", {}, error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     const errorDetails = {
       message: "Internal Server Error",
