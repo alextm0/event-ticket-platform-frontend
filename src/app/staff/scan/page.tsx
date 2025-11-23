@@ -30,18 +30,18 @@ export default function StaffScanPage() {
         setErrorMessage(null);
 
         try {
-          const response = await fetch("/api/v1/ticket-validations", {
+          const response = await fetch(`/api/events/${eventId}/tickets/${result}/validate`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({ ticketId: result, eventId }),
+            body: JSON.stringify({ code: result }),
           });
 
           const data = await response.json();
 
           if (response.ok) {
-            setValidationMessage("VALID");
+            setValidationMessage(data.message || "VALID");
             setIsValid(true);
           } else {
             setValidationMessage(data.message || "INVALID");

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { serverRuntimeConfig } from "@/config/server-env";
 import { logger } from "@/lib/logger";
+import { validateTicketWithBackend } from "@/lib/shared/ticket-validation";
 
 interface RouteParams {
   params: Promise<{
@@ -12,11 +12,8 @@ interface RouteParams {
 
 export async function POST(request: Request, { params }: RouteParams) {
   try {
+    // Read URL params
     const { eventId, ticketId } = await params;
-    const cookieStore = await cookies();
-    const userId = cookieStore.get("userId")?.value;
-    const userRole = cookieStore.get("userRole")?.value;
-    const authToken = cookieStore.get("authToken")?.value;
 
     // Validate required parameters
     if (!eventId || !ticketId) {
@@ -26,12 +23,17 @@ export async function POST(request: Request, { params }: RouteParams) {
       );
     }
 
-    // Check authentication
+    // Read auth from cookies
+    const cookieStore = await cookies();
+    const userId = cookieStore.get("userId")?.value;
+    const userRole = cookieStore.get("userRole")?.value;
+    const authToken = cookieStore.get("authToken")?.value;
+
+    // Auth and role checks
     if (!userId || !authToken) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    // Only staff can validate tickets
     if (userRole !== "staff") {
       return NextResponse.json(
         { message: "Unauthorized: Staff role required" },
@@ -42,7 +44,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     // Parse optional body for code and organizerId
     let code: string | undefined;
     let organizerId: number | undefined;
-    
+
     try {
       const contentType = request.headers.get("content-type");
       if (contentType?.includes("application/json")) {
@@ -54,72 +56,41 @@ export async function POST(request: Request, { params }: RouteParams) {
       // Body is optional, so we can ignore parse errors
     }
 
-    const scannedCode = code || ticketId; // Use provided code or fallback to ticketId
+    // Call shared validation helper
+    const result = await validateTicketWithBackend({
+      eventId,
+      ticketId,
+      authToken,
+      userId,
+      code,
+      organizerId,
+    });
 
-    // Build request body for backend
-    const backendBody: any = { qrCodeId: scannedCode };
-    if (organizerId) {
-      backendBody.organizerId = organizerId;
-    }
-
-    const backendUrl = `${serverRuntimeConfig.backendApiUrl}/api/v1/events/${eventId}/ticket-validations`;
-    
-    logger.logBackendRequest("POST", backendUrl, { eventId, ticketId });
-
-    let backendResponse: Response;
-    try {
-      backendResponse = await fetch(backendUrl, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-          "Content-Type": "application/json",
-          "X-User-Id": userId,
-        },
-        body: JSON.stringify(backendBody),
-      });
-    } catch (fetchError) {
-      logger.error("Failed to connect to backend API", { eventId, ticketId }, fetchError);
-      return NextResponse.json(
-        { message: "Failed to connect to backend API" },
-        { status: 500 }
-      );
-    }
-
-    logger.logBackendResponse(backendResponse.status, { eventId, ticketId });
-
-    if (!backendResponse.ok) {
-      const responseText = await backendResponse.text();
-      let errorBody: any;
-      try {
-        errorBody = JSON.parse(responseText);
-      } catch {
-        errorBody = { message: "Validation failed" };
+    // Handle result
+    if (!result.success) {
+      if (result.error) {
+        return NextResponse.json(result.error.body, { status: result.error.status });
       }
-      
-      logger.logBackendError(backendResponse.status, errorBody, responseText, { eventId, ticketId });
-      return NextResponse.json(errorBody, { status: backendResponse.status });
+      return NextResponse.json({ message: "Validation failed" }, { status: result.status });
     }
 
-    const responseText = await backendResponse.text();
-    let data: any;
-    try {
-      data = JSON.parse(responseText);
-    } catch (parseError) {
-      logger.error("Failed to parse backend response as JSON", { eventId, ticketId, status: backendResponse.status }, parseError);
-      return NextResponse.json(
-        { message: "Backend returned invalid JSON response" },
-        { status: 500 }
-      );
-    }
-    
-    // Format response according to the expected structure
+    // Format response according to the expected structure (route-specific)
+    // Set defaults first, then overlay backend data so backend values win
+    const defaults = {
+      valid: false, // Default to false for safety - backend must explicitly set to true
+      ticketId: ticketId, // Use route ticketId as fallback
+      eventId: eventId, // Keep as string (UUIDs are strings)
+      status: "USED",
+      message: "Ticket validated successfully",
+    };
+
+    // Merge backend data over defaults so backend values take precedence
     const formattedResponse = {
-      valid: true,
-      ticketId: data.ticketId || ticketId,
-      eventId: parseInt(eventId) || eventId,
-      status: data.status || "USED",
-      message: data.message || "Ticket validated successfully",
-      ...data, // Include any additional fields from backend
+      ...defaults,
+      ...result.data, // Backend data overwrites defaults
+      // Ensure ticketId and eventId are set correctly (use backend value if present, otherwise defaults)
+      ticketId: result.data?.ticketId ?? ticketId,
+      eventId: result.data?.eventId ?? eventId,
     };
 
     return NextResponse.json(formattedResponse, { status: 200 });

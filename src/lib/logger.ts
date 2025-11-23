@@ -40,8 +40,8 @@ function sanitizePII(text: string): string {
 
   // Passwords/tokens (common patterns)
   sanitized = sanitized.replace(
-    /"(?:password|token|authToken|accessToken|refreshToken|secret|apiKey)"\s*:\s*"[^"]*"/gi,
-    '"$1": "[REDACTED]"'
+    /"(password|token|authToken|accessToken|refreshToken|secret|apiKey)"\s*:\s*"[^"]*"/gi,
+    (match, key) => `"${key}": "[REDACTED]"`
   );
 
   return sanitized;
@@ -185,9 +185,13 @@ class Logger {
     context?: LogContext
   ) {
     if (isProduction) {
-      this.info(`Backend ${method} ${url}`, {
+      // Redact all numeric ID segments in the URL path (e.g., /123, /456)
+      // Matches a slash followed by one or more digits, followed by a slash or end-of-string
+      const redactedUrl = url.replace(/\/\d+(?=\/|$)/g, "/***");
+      
+      this.info(`Backend ${method} ${redactedUrl}`, {
         ...context,
-        url: url.replace(/\/[^\/]+(\/[^\/]*)$/, "/***$1"), // Keep endpoint but redact IDs
+        url: redactedUrl,
       });
     } else {
       this.debug(`Backend ${method} ${url}`, context);
@@ -253,4 +257,5 @@ class Logger {
 }
 
 export const logger = new Logger();
+
 

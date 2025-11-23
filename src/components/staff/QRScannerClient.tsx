@@ -29,12 +29,12 @@ export default function QRScannerClient({ eventId }: Props) {
       }
 
       try {
-        const response = await fetch("/api/v1/ticket-validations", {
+        const response = await fetch(`/api/events/${eventId}/tickets/${data}/validate`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ ticketId: data, eventId }),
+          body: JSON.stringify({ code: data }),
         });
 
         if (!response.ok) {
