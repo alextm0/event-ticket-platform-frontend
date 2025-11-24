@@ -5,7 +5,7 @@ import { serverRuntimeConfig } from "@/config/server-env";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { email, password, role } = body;
+    const { email, password } = body;
 
     // Forward request to backend
     const response = await fetch(`${serverRuntimeConfig.backendApiUrl}/api/auth/login`, {
@@ -13,7 +13,7 @@ export async function POST(request: Request) {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ email, password, role }),
+      body: JSON.stringify({ email, password }),
     });
 
     const data = await response.json();
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
       sameSite: "lax",
       path: "/",
     });
-    cookieStore.set("userRole", data.role?.toLowerCase() || role.toLowerCase(), {
+    cookieStore.set("userRole", data.role?.toLowerCase() || "attendee", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",

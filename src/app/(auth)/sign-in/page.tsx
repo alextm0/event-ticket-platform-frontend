@@ -3,22 +3,13 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import type { AppRole } from "@/lib/user-profile";
 import { SESSION_UPDATED_EVENT } from "@/lib/session-events";
-
-const ROLES: { value: AppRole; label: string }[] = [
-  { value: "admin", label: "Admin" },
-  { value: "organizer", label: "Organizer" },
-  { value: "staff", label: "Staff" },
-  { value: "attendee", label: "Attendee" },
-];
 
 export default function SignInPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<AppRole>("attendee");
   const [error, setError] = useState("");
   const [errorDetails, setErrorDetails] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -35,21 +26,21 @@ export default function SignInPage() {
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, role }),
+        body: JSON.stringify({ email, password }),
       });
 
       if (response.ok) {
         const data = await response.json();
-        
+
         // Store session in localStorage for client-side checks
         if (typeof window !== 'undefined') {
           localStorage.setItem('authToken', data.token || 'mock-token');
           localStorage.setItem('userId', data.userId || email.split('@')[0] || 'user');
           localStorage.setItem('userEmail', data.email || email);
-          localStorage.setItem('userRole', data.role?.toLowerCase() || role);
+          localStorage.setItem('userRole', data.role?.toLowerCase() || 'attendee');
           window.dispatchEvent(new Event(SESSION_UPDATED_EVENT));
         }
-        
+
         router.push(next || "/");
       } else {
         let message = "Unexpected error, please try again later.";
@@ -71,15 +62,7 @@ export default function SignInPage() {
           }
 
           if (response.status === 401) {
-            if (title === "Invalid credentials") {
-              message = backendMessage ?? "Invalid email or password";
-            } else if (title === "Invalid role") {
-              message =
-                backendMessage ??
-                "Invalid role. Please choose the correct role for this account.";
-            } else {
-              message = backendMessage ?? "Invalid email or password";
-            }
+            message = backendMessage ?? "Invalid email or password";
           } else {
             message = backendMessage ?? message;
           }
@@ -102,7 +85,7 @@ export default function SignInPage() {
       <div className="space-y-2">
         <h1 className="text-3xl font-semibold text-slate-100">Sign in to continue</h1>
         <p className="text-sm text-slate-400">
-          Enter your credentials and select your role to access the event ticketing platform.
+          Enter your credentials to access the event ticketing platform.
         </p>
       </div>
 
@@ -149,25 +132,6 @@ export default function SignInPage() {
               className="w-full rounded border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100 placeholder:text-slate-500 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
               placeholder="••••••••"
             />
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="role" className="block text-sm font-medium text-slate-300">
-              Role
-            </label>
-            <select
-              id="role"
-              value={role}
-              onChange={(e) => setRole(e.target.value as AppRole)}
-              required
-              className="w-full rounded border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
-            >
-              {ROLES.map((r) => (
-                <option key={r.value} value={r.value} className="bg-slate-800">
-                  {r.label}
-                </option>
-              ))}
-            </select>
           </div>
 
           <button

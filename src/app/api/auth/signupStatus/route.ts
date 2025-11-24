@@ -11,20 +11,16 @@ export async function GET() {
     });
 
     if (!response.ok) {
-      return NextResponse.json(
-        { enabled: false },
-        { status: response.status }
-      );
+      // If backend returns error, default to enabled
+      return NextResponse.json({ enabled: true });
     }
 
     const data = await response.json();
     return NextResponse.json(data);
   } catch (error) {
     console.error("SignupStatus error:", error);
-    return NextResponse.json(
-      { enabled: false },
-      { status: 500 }
-    );
+    // If backend is unreachable, default to enabled
+    return NextResponse.json({ enabled: true });
   }
 }
 
