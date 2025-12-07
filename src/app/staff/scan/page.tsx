@@ -2,24 +2,82 @@
 // src/app/staff/scan/page.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Scanner, IDetectedBarcode } from "@yudiel/react-qr-scanner";
 
+interface AssignedEvent {
+  eventId: string;
+  eventName: string;
+}
+
 export default function StaffScanPage() {
   const [eventId, setEventId] = useState<string>("");
+  const [assignedEvents, setAssignedEvents] = useState<AssignedEvent[]>([]);
+  const [loadingEvents, setLoadingEvents] = useState<boolean>(true);
+  const [eventsError, setEventsError] = useState<string | null>(null);
   const [scannedData, setScannedData] = useState<string | null>(null);
   const [validationMessage, setValidationMessage] = useState<string | null>(null);
   const [isValid, setIsValid] = useState<boolean | null>(null);
   const [isScanning, setIsScanning] = useState<boolean>(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // Fetch assigned events on component mount
+  useEffect(() => {
+    const fetchAssignedEvents = async () => {
+      try {
+        setLoadingEvents(true);
+        setEventsError(null);
+
+        // Get staff ID from localStorage (set during login)
+        const staffId = localStorage.getItem("userId");
+        if (!staffId) {
+          setEventsError("Staff ID not found. Please log in again.");
+          setLoadingEvents(false);
+          return;
+        }
+
+        const response = await fetch(`/api/v1/events/staff/${staffId}/assigned-events`);
+        
+        if (!response.ok) {
+          if (response.status === 404) {
+            setEventsError("Staff member not found");
+          } else if (response.status === 403) {
+            setEventsError("User is not a staff member");
+          } else {
+            setEventsError("Failed to load assigned events");
+          }
+          setLoadingEvents(false);
+          return;
+        }
+
+        const data = await response.json();
+        if (data.events && Array.isArray(data.events)) {
+          setAssignedEvents(data.events);
+          // Auto-select first event if available
+          if (data.events.length > 0) {
+            setEventId(data.events[0].eventId);
+          }
+        } else {
+          setAssignedEvents([]);
+        }
+      } catch (error) {
+        console.error("Error fetching assigned events:", error);
+        setEventsError("Failed to load assigned events");
+      } finally {
+        setLoadingEvents(false);
+      }
+    };
+
+    fetchAssignedEvents();
+  }, []);
+
   const handleScan = async (detectedCodes: IDetectedBarcode[]) => {
     if (detectedCodes.length > 0) {
       const result = detectedCodes[0].rawValue;
       if (result && result !== scannedData) {
         if (!eventId) {
-          setErrorMessage("Enter an event ID before scanning.");
+          setErrorMessage("Please select an event before scanning.");
           return;
         }
 
@@ -94,19 +152,40 @@ export default function StaffScanPage() {
       <div className="w-full max-w-md bg-gray-800 rounded-lg shadow-lg p-6 space-y-4">
         <div>
           <label htmlFor="eventId" className="block text-sm font-medium text-gray-300 mb-1">
-            Event ID
+            Select Event
           </label>
-          <input
-            id="eventId"
-            type="text"
-            value={eventId}
-            onChange={(event) => setEventId(event.target.value.trim())}
-            placeholder="e.g. 123e4567-e89b-12d3-a456-426614174000"
-            className="w-full rounded-md border border-gray-600 bg-gray-900 p-2 text-white focus:border-sky-500 focus:outline-none"
-          />
-          <p className="mt-1 text-xs text-gray-500">
-            Paste the backend event UUID staff is assigned to, then scan attendee tickets.
-          </p>
+          {loadingEvents ? (
+            <div className="w-full rounded-md border border-gray-600 bg-gray-900 p-2 text-gray-400 text-sm">
+              Loading assigned events...
+            </div>
+          ) : eventsError ? (
+            <div className="w-full rounded-md border border-red-600 bg-gray-900 p-2 text-red-400 text-sm">
+              {eventsError}
+            </div>
+          ) : assignedEvents.length === 0 ? (
+            <div className="w-full rounded-md border border-yellow-600 bg-gray-900 p-2 text-yellow-400 text-sm">
+              No events assigned to you
+            </div>
+          ) : (
+            <>
+              <select
+                id="eventId"
+                value={eventId}
+                onChange={(event) => setEventId(event.target.value)}
+                className="w-full rounded-md border border-gray-600 bg-gray-900 p-2 text-white focus:border-sky-500 focus:outline-none"
+              >
+                <option value="">-- Select an event --</option>
+                {assignedEvents.map((event) => (
+                  <option key={event.eventId} value={event.eventId}>
+                    {event.eventName}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-gray-500">
+                Select an event you're assigned to, then scan attendee tickets.
+              </p>
+            </>
+          )}
         </div>
 
         <div className="relative w-full h-80 mb-6 overflow-hidden rounded-md">

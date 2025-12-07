@@ -384,3 +384,69 @@ export async function getUserTickets(): Promise<Ticket[]> {
 
   return data.map(normalizeTicketResponse);
 }
+
+export interface StaffAssignedEvent {
+  eventId: string;
+  eventName: string;
+}
+
+export interface StaffAssignedEventsResponse {
+  events: Array<{
+    eventId: string;
+    eventName: string;
+  }>;
+}
+
+/**
+ * Get events assigned to a staff member
+ */
+export async function getStaffAssignedEvents(staffId: string): Promise<StaffAssignedEvent[]> {
+  const token = await getAuthToken();
+  if (!token) {
+    throw new Error("No authentication token available.");
+  }
+
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    throw new Error("No user ID available.");
+  }
+
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+    "X-User-Id": userId,
+  };
+
+  const response = await fetch(
+    `${serverRuntimeConfig.backendApiUrl}/api/v1/events/staff/${staffId}/assigned-events`,
+    {
+      method: "GET",
+      headers,
+      cache: "no-store",
+    }
+  );
+
+  if (!response.ok) {
+    const body = await response.text();
+    if (response.status === 404) {
+      throw new Error("Staff member not found");
+    }
+    if (response.status === 403) {
+      throw new Error("User is not a staff member");
+    }
+    throw new Error(
+      `Failed to fetch assigned events (${response.status} ${response.statusText}): ${body}`
+    );
+  }
+
+  const data: StaffAssignedEventsResponse = await response.json();
+
+  if (!data.events || !Array.isArray(data.events)) {
+    return [];
+  }
+
+  return data.events.map((event) => ({
+    eventId: event.eventId,
+    eventName: event.eventName,
+  }));
+}
