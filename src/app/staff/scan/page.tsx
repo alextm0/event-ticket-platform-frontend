@@ -5,6 +5,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Scanner, IDetectedBarcode } from "@yudiel/react-qr-scanner";
+import { validateTicket } from "@/lib/validate-ticket";
 
 interface AssignedEvent {
   eventId: string;
@@ -88,26 +89,34 @@ export default function StaffScanPage() {
         setErrorMessage(null);
 
         try {
-          const response = await fetch(`/api/events/${eventId}/tickets/${result}/validate`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ code: result }),
-          });
-
-          const data = await response.json();
-
-          if (response.ok) {
-            setValidationMessage(data.message || "VALID");
+          const data = await validateTicket(eventId, result, { code: result });
+          // Check validationStatus or valid field to determine if ticket is valid
+          const isValid = data.valid === true || data.validationStatus === "VALID";
+          
+          if (isValid) {
+            setValidationMessage(data.message || "Ticket validated successfully");
             setIsValid(true);
           } else {
-            setValidationMessage(data.message || "INVALID");
+            // Handle already validated case
+            if (data.validationStatus === "INVALID" && (data.status === "CHECKED_IN" || data.ticketStatus === "CHECKED_IN")) {
+              setValidationMessage(data.message || "Ticket already checked in");
+            } else {
+              setValidationMessage(data.message || "Ticket is invalid");
+            }
             setIsValid(false);
           }
         } catch (error) {
           console.error("Error validating ticket:", error);
-          setValidationMessage("Error validating ticket.");
+          let errorMessage = error instanceof Error ? error.message : "Error validating ticket.";
+          
+          // Handle invalid QR code format errors
+          if (errorMessage.includes("Invalid QR code format") || errorMessage.includes("missing TICKET prefix")) {
+            errorMessage = "Invalid QR code format. Please scan a valid ticket QR code.";
+          } else if (errorMessage.includes("HTTP 500")) {
+            errorMessage = "Invalid QR code. Please scan a valid ticket QR code.";
+          }
+          
+          setValidationMessage(errorMessage);
           setIsValid(false);
         } finally {
           // Resume scanning after a short delay

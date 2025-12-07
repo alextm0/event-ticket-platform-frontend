@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import jsQR from "jsqr";
+import { validateTicket } from "@/lib/validate-ticket";
 
 interface ValidationPopup {
   show: boolean;
@@ -21,7 +22,7 @@ export default function QRScannerClient({ eventId }: Props) {
   const lastScannedRef = useRef<string>("");
   const popupRef = useRef<ValidationPopup>(popup);
 
-  const validateTicket = useCallback(
+  const handleTicketValidation = useCallback(
     async (data: string) => {
       if (!eventId) {
         setPopup({ show: true, isValid: false, message: "Missing event ID for validation." });
@@ -29,27 +30,35 @@ export default function QRScannerClient({ eventId }: Props) {
       }
 
       try {
-        const response = await fetch(`/api/events/${eventId}/tickets/${data}/validate`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ code: data }),
-        });
-
-        if (!response.ok) {
-          const errorBody = await response.json().catch(() => ({}));
-          const message = errorBody?.message || errorBody?.title || "Ticket rejected";
+        const result = await validateTicket(eventId, data, { code: data });
+        // Check validationStatus or valid field to determine if ticket is valid
+        const isValid = result.valid === true || result.validationStatus === "VALID";
+        
+        if (isValid) {
+          const message = result.message || "Ticket validated successfully";
+          setPopup({ show: true, isValid: true, message });
+        } else {
+          // Handle already validated case
+          let message: string;
+          if (result.validationStatus === "INVALID" && (result.status === "CHECKED_IN" || result.ticketStatus === "CHECKED_IN")) {
+            message = result.message || "Ticket already checked in";
+          } else {
+            message = result.message || "Ticket is invalid";
+          }
           setPopup({ show: true, isValid: false, message });
-          return;
         }
-
-        const result = await response.json();
-        const message = result.message || "Ticket validated";
-        setPopup({ show: true, isValid: true, message });
       } catch (err) {
         console.error("Validation error:", err);
-        setPopup({ show: true, isValid: false, message: "Validation failed. Try again." });
+        let errorMessage = err instanceof Error ? err.message : "Validation failed. Try again.";
+        
+        // Handle invalid QR code format errors
+        if (errorMessage.includes("Invalid QR code format") || errorMessage.includes("missing TICKET prefix")) {
+          errorMessage = "Invalid QR code format. Please scan a valid ticket QR code.";
+        } else if (errorMessage.includes("HTTP 500")) {
+          errorMessage = "Invalid QR code. Please scan a valid ticket QR code.";
+        }
+        
+        setPopup({ show: true, isValid: false, message: errorMessage });
       }
     },
     [eventId],
@@ -97,7 +106,7 @@ export default function QRScannerClient({ eventId }: Props) {
             if (code && code.data !== lastScannedRef.current) {
               lastScannedRef.current = code.data;
               setQrData(code.data);
-              validateTicket(code.data);
+              handleTicketValidation(code.data);
             }
           }
           animationFrameId = requestAnimationFrame(scan);
@@ -118,7 +127,7 @@ export default function QRScannerClient({ eventId }: Props) {
         (videoElement.srcObject as MediaStream).getTracks().forEach((track) => track.stop());
       }
     };
-  }, [eventId, validateTicket]);
+  }, [eventId, handleTicketValidation]);
 
   return (
     <>
