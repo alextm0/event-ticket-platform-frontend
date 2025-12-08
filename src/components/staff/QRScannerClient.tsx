@@ -3,6 +3,11 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import jsQR from "jsqr";
 import { validateTicket } from "@/lib/validate-ticket";
+import {
+  isTicketValid,
+  getValidationMessage,
+  sanitizeValidationErrorMessage,
+} from "@/lib/ticket-validation-helpers";
 
 interface ValidationPopup {
   show: boolean;
@@ -31,33 +36,14 @@ export default function QRScannerClient({ eventId }: Props) {
 
       try {
         const result = await validateTicket(eventId, data, { code: data });
-        // Check validationStatus or valid field to determine if ticket is valid
-        const isValid = result.valid === true || result.validationStatus === "VALID";
         
-        if (isValid) {
-          const message = result.message || "Ticket validated successfully";
-          setPopup({ show: true, isValid: true, message });
-        } else {
-          // Handle already validated case
-          let message: string;
-          if (result.validationStatus === "INVALID" && (result.status === "CHECKED_IN" || result.ticketStatus === "CHECKED_IN")) {
-            message = result.message || "Ticket already checked in";
-          } else {
-            message = result.message || "Ticket is invalid";
-          }
-          setPopup({ show: true, isValid: false, message });
-        }
+        const isValid = isTicketValid(result);
+        const message = getValidationMessage(result);
+        
+        setPopup({ show: true, isValid, message });
       } catch (err) {
         console.error("Validation error:", err);
-        let errorMessage = err instanceof Error ? err.message : "Validation failed. Try again.";
-        
-        // Handle invalid QR code format errors
-        if (errorMessage.includes("Invalid QR code format") || errorMessage.includes("missing TICKET prefix")) {
-          errorMessage = "Invalid QR code format. Please scan a valid ticket QR code.";
-        } else if (errorMessage.includes("HTTP 500")) {
-          errorMessage = "Invalid QR code. Please scan a valid ticket QR code.";
-        }
-        
+        const errorMessage = sanitizeValidationErrorMessage(err);
         setPopup({ show: true, isValid: false, message: errorMessage });
       }
     },

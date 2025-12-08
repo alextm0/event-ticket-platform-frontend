@@ -1,5 +1,4 @@
 import { serverRuntimeConfig } from "@/config/server-env";
-import { logger } from "@/lib/logger";
 
 export interface TicketValidationOptions {
   eventId: string;
@@ -56,8 +55,6 @@ export async function validateTicketWithBackend(
 
   const backendUrl = `${serverRuntimeConfig.backendApiUrl}/api/v1/events/${eventId}/ticket-validations`;
 
-  logger.logBackendRequest("POST", backendUrl, { eventId, ticketId });
-
   let backendResponse: Response;
   try {
     backendResponse = await fetch(backendUrl, {
@@ -70,7 +67,6 @@ export async function validateTicketWithBackend(
       body: JSON.stringify(backendBody),
     });
   } catch (fetchError) {
-    logger.error("Failed to connect to backend API", { eventId, ticketId }, fetchError);
     return {
       success: false,
       status: 500,
@@ -81,8 +77,6 @@ export async function validateTicketWithBackend(
       },
     };
   }
-
-  logger.logBackendResponse(backendResponse.status, { eventId, ticketId });
 
   // Handle error responses
   if (!backendResponse.ok) {
@@ -95,8 +89,6 @@ export async function validateTicketWithBackend(
         message: `Backend returned status ${backendResponse.status}`,
       };
     }
-
-    logger.logBackendError(backendResponse.status, errorBody, responseText, { eventId, ticketId });
 
     return {
       success: false,
@@ -115,11 +107,6 @@ export async function validateTicketWithBackend(
   try {
     data = JSON.parse(responseText);
   } catch (parseError) {
-    logger.error(
-      "Failed to parse backend response as JSON",
-      { eventId, ticketId, status: backendResponse.status },
-      parseError
-    );
     return {
       success: false,
       status: 500,

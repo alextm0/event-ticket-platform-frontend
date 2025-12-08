@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { logger } from "@/lib/logger";
 import { validateTicketWithBackend } from "@/lib/shared/ticket-validation";
 
 interface RouteParams {
@@ -148,7 +147,6 @@ export async function POST(request: Request, { params }: RouteParams) {
 
     return NextResponse.json(formattedResponse, { status: 200 });
   } catch (error) {
-    logger.error("Error validating ticket", {}, error);
     return NextResponse.json(
       { message: "Internal Server Error" },
       { status: 500 }

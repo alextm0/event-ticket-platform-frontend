@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { serverRuntimeConfig } from "@/config/server-env";
-import { logger } from "@/lib/logger";
 
 interface RouteParams {
   params: Promise<{
@@ -27,8 +26,6 @@ export async function GET(_request: Request, { params }: RouteParams) {
 
     const backendUrl = `${serverRuntimeConfig.backendApiUrl}/api/v1/events/staff/${staffId}/assigned-events`;
 
-    logger.logBackendRequest("GET", backendUrl, { staffId });
-
     let backendResponse: Response;
     try {
       backendResponse = await fetch(backendUrl, {
@@ -40,14 +37,11 @@ export async function GET(_request: Request, { params }: RouteParams) {
         },
       });
     } catch (fetchError) {
-      logger.error("Failed to connect to backend API", { staffId }, fetchError);
       return NextResponse.json(
         { message: "Failed to connect to backend API" },
         { status: 500 }
       );
     }
-
-    logger.logBackendResponse(backendResponse.status, { staffId });
 
     if (!backendResponse.ok) {
       const responseText = await backendResponse.text();
@@ -57,8 +51,6 @@ export async function GET(_request: Request, { params }: RouteParams) {
       } catch {
         errorBody = { message: "Failed to fetch assigned events" };
       }
-
-      logger.logBackendError(backendResponse.status, errorBody, responseText, { staffId });
 
       if (backendResponse.status === 404) {
         return NextResponse.json({ message: "Staff member not found" }, { status: 404 });
@@ -75,7 +67,6 @@ export async function GET(_request: Request, { params }: RouteParams) {
     try {
       data = JSON.parse(responseText);
     } catch (parseError) {
-      logger.error("Failed to parse backend response as JSON", { staffId, status: backendResponse.status }, parseError);
       return NextResponse.json(
         { message: "Backend returned invalid JSON response" },
         { status: 500 }
@@ -84,7 +75,6 @@ export async function GET(_request: Request, { params }: RouteParams) {
 
     return NextResponse.json(data, { status: backendResponse.status });
   } catch (error) {
-    logger.error("Error fetching assigned events", {}, error);
     return NextResponse.json(
       { message: "Internal Server Error" },
       { status: 500 }

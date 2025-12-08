@@ -19,6 +19,8 @@ export async function validateTicket(
   eventId: number | string;
   status: string;
   message: string;
+  validationStatus?: string;
+  ticketStatus?: string;
 }> {
   const body: any = {};
   
