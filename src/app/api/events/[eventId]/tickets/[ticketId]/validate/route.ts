@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { serverRuntimeConfig } from "@/config/server-env";
-import { logger } from "@/lib/logger";
+import { validateTicketWithBackend } from "@/lib/shared/ticket-validation";
 
 interface RouteParams {
   params: Promise<{
@@ -12,11 +11,8 @@ interface RouteParams {
 
 export async function POST(request: Request, { params }: RouteParams) {
   try {
+    // Read URL params
     const { eventId, ticketId } = await params;
-    const cookieStore = await cookies();
-    const userId = cookieStore.get("userId")?.value;
-    const userRole = cookieStore.get("userRole")?.value;
-    const authToken = cookieStore.get("authToken")?.value;
 
     // Validate required parameters
     if (!eventId || !ticketId) {
@@ -26,12 +22,17 @@ export async function POST(request: Request, { params }: RouteParams) {
       );
     }
 
-    // Check authentication
+    // Read auth from cookies
+    const cookieStore = await cookies();
+    const userId = cookieStore.get("userId")?.value;
+    const userRole = cookieStore.get("userRole")?.value;
+    const authToken = cookieStore.get("authToken")?.value;
+
+    // Auth and role checks
     if (!userId || !authToken) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    // Only staff can validate tickets
     if (userRole !== "staff") {
       return NextResponse.json(
         { message: "Unauthorized: Staff role required" },
@@ -42,7 +43,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     // Parse optional body for code and organizerId
     let code: string | undefined;
     let organizerId: number | undefined;
-    
+
     try {
       const contentType = request.headers.get("content-type");
       if (contentType?.includes("application/json")) {
@@ -54,81 +55,101 @@ export async function POST(request: Request, { params }: RouteParams) {
       // Body is optional, so we can ignore parse errors
     }
 
-    const scannedCode = code || ticketId; // Use provided code or fallback to ticketId
+    // Call shared validation helper
+    const result = await validateTicketWithBackend({
+      eventId,
+      ticketId,
+      authToken,
+      userId,
+      code,
+      organizerId,
+    });
 
-    // Build request body for backend
-    const backendBody: any = { qrCodeId: scannedCode };
-    if (organizerId) {
-      backendBody.organizerId = organizerId;
-    }
-
-    const backendUrl = `${serverRuntimeConfig.backendApiUrl}/api/v1/events/${eventId}/ticket-validations`;
-    
-    logger.logBackendRequest("POST", backendUrl, { eventId, ticketId });
-
-    let backendResponse: Response;
-    try {
-      backendResponse = await fetch(backendUrl, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-          "Content-Type": "application/json",
-          "X-User-Id": userId,
-        },
-        body: JSON.stringify(backendBody),
-      });
-    } catch (fetchError) {
-      logger.error("Failed to connect to backend API", { eventId, ticketId }, fetchError);
-      return NextResponse.json(
-        { message: "Failed to connect to backend API" },
-        { status: 500 }
-      );
-    }
-
-    logger.logBackendResponse(backendResponse.status, { eventId, ticketId });
-
-    if (!backendResponse.ok) {
-      const responseText = await backendResponse.text();
-      let errorBody: any;
-      try {
-        errorBody = JSON.parse(responseText);
-      } catch {
-        errorBody = { message: "Validation failed" };
+    // Handle result
+    if (!result.success) {
+      if (result.error) {
+        const errorBody = result.error.body;
+        // Extract user-friendly error message from backend error response
+        let errorMessage = "Validation failed";
+        
+        if (errorBody) {
+          // Check for detail field (common in error responses)
+          if (errorBody.detail) {
+            errorMessage = errorBody.detail;
+          } else if (errorBody.message) {
+            errorMessage = errorBody.message;
+          } else if (errorBody.title) {
+            errorMessage = errorBody.title;
+          }
+          
+          // Handle specific invalid QR code format errors
+          if (errorMessage.includes("Invalid QR code format") || errorMessage.includes("missing TICKET prefix")) {
+            errorMessage = "Invalid QR code format. Please scan a valid ticket QR code.";
+          }
+        }
+        
+        return NextResponse.json(
+          { 
+            ...errorBody,
+            message: errorMessage,
+            valid: false,
+          }, 
+          { status: result.error.status }
+        );
       }
-      
-      logger.logBackendError(backendResponse.status, errorBody, responseText, { eventId, ticketId });
-      return NextResponse.json(errorBody, { status: backendResponse.status });
+      return NextResponse.json({ 
+        message: "Validation failed",
+        valid: false,
+      }, { status: result.status });
     }
 
-    const responseText = await backendResponse.text();
-    let data: any;
-    try {
-      data = JSON.parse(responseText);
-    } catch (parseError) {
-      logger.error("Failed to parse backend response as JSON", { eventId, ticketId, status: backendResponse.status }, parseError);
-      return NextResponse.json(
-        { message: "Backend returned invalid JSON response" },
-        { status: 500 }
-      );
-    }
+    // Format response according to the expected structure (route-specific)
+    // Backend returns validationStatus: "VALID" or "INVALID" which indicates the actual validation result
+    const validationStatus = result.data?.validationStatus;
+    const isValid = validationStatus === "VALID";
     
-    // Format response according to the expected structure
+    // Determine message based on validation status
+    let message: string;
+    if (validationStatus === "VALID") {
+      message = result.data?.message || "Ticket validated successfully";
+    } else if (validationStatus === "INVALID") {
+      // Ticket was already validated or is invalid
+      const ticketStatus = result.data?.ticketStatus;
+      if (ticketStatus === "CHECKED_IN" || ticketStatus === "USED") {
+        message = result.data?.message || "Ticket already checked in";
+      } else {
+        message = result.data?.message || "Ticket is invalid";
+      }
+    } else {
+      message = result.data?.message || "Validation failed";
+    }
+
+    // Set defaults first, then overlay backend data so backend values win
+    const defaults = {
+      valid: isValid,
+      ticketId: ticketId, // Use route ticketId as fallback
+      eventId: eventId, // Keep as string (UUIDs are strings)
+      status: result.data?.ticketStatus || "USED",
+      message: message,
+    };
+
+    // Merge backend data over defaults so backend values take precedence
     const formattedResponse = {
-      valid: true,
-      ticketId: data.ticketId || ticketId,
-      eventId: parseInt(eventId) || eventId,
-      status: data.status || "USED",
-      message: data.message || "Ticket validated successfully",
-      ...data, // Include any additional fields from backend
+      ...defaults,
+      ...result.data, // Backend data overwrites defaults
+      // Ensure valid, ticketId, eventId, and message are set correctly
+      valid: isValid, // Use validationStatus to determine valid
+      ticketId: result.data?.ticketId ?? ticketId,
+      eventId: result.data?.eventId ?? eventId,
+      message: message, // Use our computed message
+      validationStatus: validationStatus, // Include validationStatus for reference
     };
 
     return NextResponse.json(formattedResponse, { status: 200 });
   } catch (error) {
-    logger.error("Error validating ticket", {}, error);
     return NextResponse.json(
       { message: "Internal Server Error" },
       { status: 500 }
     );
   }
 }
-

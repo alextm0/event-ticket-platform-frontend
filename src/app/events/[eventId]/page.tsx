@@ -4,13 +4,13 @@ import { notFound } from "next/navigation";
 import { getPublishedEvent, getEventTicketTypes } from "@/lib/backend-client";
 
 interface EventDetailsPageProps {
-  params: {
+  params: Promise<{
     eventId: string;
-  };
+  }>;
 }
 
 export default async function EventDetailsPage({ params }: EventDetailsPageProps) {
-  const { eventId } = params;
+  const { eventId } = await params;
 
   try {
     const [event, ticketTypes] = await Promise.all([

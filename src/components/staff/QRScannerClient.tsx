@@ -2,6 +2,12 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import jsQR from "jsqr";
+import { validateTicket } from "@/lib/validate-ticket";
+import {
+  isTicketValid,
+  getValidationMessage,
+  sanitizeValidationErrorMessage,
+} from "@/lib/ticket-validation-helpers";
 
 interface ValidationPopup {
   show: boolean;
@@ -21,35 +27,29 @@ export default function QRScannerClient({ eventId }: Props) {
   const lastScannedRef = useRef<string>("");
   const popupRef = useRef<ValidationPopup>(popup);
 
-  const validateTicket = useCallback(
+  const handleTicketValidation = useCallback(
     async (data: string) => {
+      // Prevent validation if no event is selected
       if (!eventId) {
-        setPopup({ show: true, isValid: false, message: "Missing event ID for validation." });
+        setPopup({ 
+          show: true, 
+          isValid: false, 
+          message: "Please select an event before scanning tickets." 
+        });
         return;
       }
 
       try {
-        const response = await fetch("/api/v1/ticket-validations", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ ticketId: data, eventId }),
-        });
-
-        if (!response.ok) {
-          const errorBody = await response.json().catch(() => ({}));
-          const message = errorBody?.message || errorBody?.title || "Ticket rejected";
-          setPopup({ show: true, isValid: false, message });
-          return;
-        }
-
-        const result = await response.json();
-        const message = result.message || "Ticket validated";
-        setPopup({ show: true, isValid: true, message });
+        const result = await validateTicket(eventId, data, { code: data });
+        
+        const isValid = isTicketValid(result);
+        const message = getValidationMessage(result);
+        
+        setPopup({ show: true, isValid, message });
       } catch (err) {
         console.error("Validation error:", err);
-        setPopup({ show: true, isValid: false, message: "Validation failed. Try again." });
+        const errorMessage = sanitizeValidationErrorMessage(err);
+        setPopup({ show: true, isValid: false, message: errorMessage });
       }
     },
     [eventId],
@@ -60,6 +60,11 @@ export default function QRScannerClient({ eventId }: Props) {
   }, [popup]);
 
   useEffect(() => {
+    // Don't start camera if no event is selected
+    if (!eventId) {
+      return;
+    }
+
     let animationFrameId: number | null = null;
     const videoElement = videoRef.current;
 
@@ -97,7 +102,8 @@ export default function QRScannerClient({ eventId }: Props) {
             if (code && code.data !== lastScannedRef.current) {
               lastScannedRef.current = code.data;
               setQrData(code.data);
-              validateTicket(code.data);
+              // handleTicketValidation will check if eventId is present and prevent validation
+              handleTicketValidation(code.data);
             }
           }
           animationFrameId = requestAnimationFrame(scan);
@@ -118,7 +124,7 @@ export default function QRScannerClient({ eventId }: Props) {
         (videoElement.srcObject as MediaStream).getTracks().forEach((track) => track.stop());
       }
     };
-  }, [eventId, validateTicket]);
+  }, [eventId, handleTicketValidation]);
 
   return (
     <>

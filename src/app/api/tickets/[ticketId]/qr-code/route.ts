@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
 import { serverRuntimeConfig } from "@/config/server-env";
-import { logger } from "@/lib/logger";
 
 interface RouteParams {
   params: Promise<{
@@ -52,8 +51,6 @@ export async function GET(_request: Request, { params }: RouteParams) {
     const data = await response.json();
     return NextResponse.json(data);
   } catch (error) {
-    logger.error("Failed to fetch ticket QR code", { ticketId }, error);
     return NextResponse.json({ message: "Internal Server Error" }, { status: 500 });
   }
 }
-
