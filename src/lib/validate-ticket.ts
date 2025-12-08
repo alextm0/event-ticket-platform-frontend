@@ -73,7 +73,3 @@ export async function validateTicket(
 
   return await response.json();
 }
-
-
-
-
