@@ -29,8 +29,13 @@ export default function QRScannerClient({ eventId }: Props) {
 
   const handleTicketValidation = useCallback(
     async (data: string) => {
+      // Prevent validation if no event is selected
       if (!eventId) {
-        setPopup({ show: true, isValid: false, message: "Missing event ID for validation." });
+        setPopup({ 
+          show: true, 
+          isValid: false, 
+          message: "Please select an event before scanning tickets." 
+        });
         return;
       }
 
@@ -55,6 +60,11 @@ export default function QRScannerClient({ eventId }: Props) {
   }, [popup]);
 
   useEffect(() => {
+    // Don't start camera if no event is selected
+    if (!eventId) {
+      return;
+    }
+
     let animationFrameId: number | null = null;
     const videoElement = videoRef.current;
 
@@ -92,6 +102,7 @@ export default function QRScannerClient({ eventId }: Props) {
             if (code && code.data !== lastScannedRef.current) {
               lastScannedRef.current = code.data;
               setQrData(code.data);
+              // handleTicketValidation will check if eventId is present and prevent validation
               handleTicketValidation(code.data);
             }
           }

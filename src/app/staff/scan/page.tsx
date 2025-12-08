@@ -82,8 +82,17 @@ export default function StaffScanPage() {
     if (detectedCodes.length > 0) {
       const result = detectedCodes[0].rawValue;
       if (result && result !== scannedData) {
+        // Prevent validation if no event is selected
         if (!eventId) {
           setErrorMessage("Please select an event before scanning.");
+          setIsValid(false);
+          setValidationMessage("Please select an event before scanning.");
+          // Clear message after a delay
+          setTimeout(() => {
+            setErrorMessage(null);
+            setValidationMessage(null);
+            setIsValid(null);
+          }, 3000);
           return;
         }
 
@@ -188,7 +197,12 @@ export default function StaffScanPage() {
         </div>
 
         <div className="relative w-full h-80 mb-6 overflow-hidden rounded-md">
-          {isScanning && (
+          {!eventId ? (
+            // Show message when no event is selected
+            <div className="absolute inset-0 flex items-center justify-center text-center text-xl font-medium text-yellow-400 bg-gray-900 bg-opacity-95 p-4">
+              Please select an event from the dropdown above to start scanning tickets.
+            </div>
+          ) : isScanning ? (
             <Scanner
               onScan={handleScan}
               onError={handleError}
@@ -197,8 +211,8 @@ export default function StaffScanPage() {
                 video: { width: "100%", height: "100%", objectFit: "cover" },
               }}
             />
-          )}
-          {!isScanning && validationMessage && (
+          ) : null}
+          {!isScanning && validationMessage && eventId && (
             <div className={`absolute inset-0 flex items-center justify-center text-center text-5xl font-bold ${getValidationMessageClass()} bg-gray-900 bg-opacity-90`}>
               {validationMessage}
             </div>
