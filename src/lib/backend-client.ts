@@ -385,6 +385,47 @@ export async function getUserTickets(): Promise<Ticket[]> {
   return data.map(normalizeTicketResponse);
 }
 
+export async function buyTicket(eventId: string, ticketTypeId: string, quantity: number = 1): Promise<{ orderId: string }> {
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    throw new Error("No user ID available for ticket purchase.");
+  }
+
+  const headers: Record<string, string> = {
+    "X-User-Id": userId,
+    "Content-Type": "application/json",
+  };
+
+  const token = await getAuthToken();
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const requestBody = JSON.stringify({
+    quantity: quantity,
+  });
+
+  const response = await fetch(
+    `${serverRuntimeConfig.backendApiUrl}/api/v1/published-event/${eventId}/ticket-types/${ticketTypeId}`,
+    {
+      method: "POST",
+      headers,
+      body: requestBody,
+      cache: "no-store",
+    }
+  );
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(
+      `Failed to purchase ticket (${response.status} ${response.statusText}): ${body}`
+    );
+  }
+
+  const data = await response.json();
+  return { orderId: data.orderId || data.id };
+}
+
 export interface StaffAssignedEvent {
   eventId: string;
   eventName: string;
