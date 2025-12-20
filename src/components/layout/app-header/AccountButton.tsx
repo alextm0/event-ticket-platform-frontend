@@ -1,6 +1,7 @@
 'use client';
 
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { SESSION_UPDATED_EVENT } from "@/lib/session-events";
 
@@ -25,8 +26,13 @@ function AccountButton() {
     };
   }, []);
 
-  const handleSignOut = () => {
-    // TODO: Replace with actual sign out logic
+  const handleSignOut = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch (error) {
+      console.error("Logout failed", error);
+    }
+
     if (typeof window !== "undefined") {
       localStorage.removeItem("authToken");
       localStorage.removeItem("userRole");
@@ -41,21 +47,20 @@ function AccountButton() {
   return (
     <div className="flex items-center gap-3">
       {isLoggedIn ? (
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleSignOut}
-            className="rounded bg-slate-700 px-3 py-1 text-sm font-medium text-slate-200 hover:bg-slate-600"
-          >
-            Sign out
-          </button>
-        </div>
-      ) : (
-        <Link
-          href="/sign-in"
-          className="rounded bg-sky-500 px-3 py-1 text-sm font-medium text-slate-900 hover:bg-sky-400"
+        <Button
+          variant="mint"
+          size="default"
+          onClick={handleSignOut}
+          className="font-semibold gap-2"
         >
-          Sign in
-        </Link>
+          Sign out
+        </Button>
+      ) : (
+        <Button asChild variant="mint" size="default" className="font-semibold">
+          <Link href="/sign-in">
+            Sign in
+          </Link>
+        </Button>
       )}
     </div>
   );

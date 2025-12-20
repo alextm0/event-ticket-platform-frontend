@@ -1,8 +1,14 @@
 import { Suspense } from "react";
+import { Inter } from "next/font/google"; // Using Inter as primary font
+import { AppHeader } from "@/components/layout/app-header/AppHeader";
 
-import { AppHeader } from "@/components/app-header/AppHeader";
+import "../styles/globals.css"; // Moved globals.css
 
-import "./globals.css";
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
 
 export default function RootLayout({
   children,
@@ -10,12 +16,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className="bg-slate-950 text-slate-100 antialiased">
-        <Suspense fallback={<div className="border-b border-slate-800 bg-slate-900 py-3" />}>
+    <html lang="en" suppressHydrationWarning className={`${inter.variable} dark`}>
+      <body className="antialiased min-h-screen">
+        <Suspense fallback={<div className="border-b border-[var(--color-border)] bg-[var(--color-surface)] py-3" />}>
           <AppHeader />
         </Suspense>
-        <main className="mx-auto min-h-screen max-w-5xl px-4 py-6">{children}</main>
+        <main className="mx-auto min-h-screen max-w-7xl px-4 py-6">{children}</main>
       </body>
     </html>
   );

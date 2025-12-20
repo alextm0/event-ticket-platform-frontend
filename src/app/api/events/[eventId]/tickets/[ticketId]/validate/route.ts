@@ -71,7 +71,7 @@ export async function POST(request: Request, { params }: RouteParams) {
         const errorBody = result.error.body;
         // Extract user-friendly error message from backend error response
         let errorMessage = "Validation failed";
-        
+
         if (errorBody) {
           // Check for detail field (common in error responses)
           if (errorBody.detail) {
@@ -81,23 +81,23 @@ export async function POST(request: Request, { params }: RouteParams) {
           } else if (errorBody.title) {
             errorMessage = errorBody.title;
           }
-          
+
           // Handle specific invalid QR code format errors
           if (errorMessage.includes("Invalid QR code format") || errorMessage.includes("missing TICKET prefix")) {
             errorMessage = "Invalid QR code format. Please scan a valid ticket QR code.";
           }
         }
-        
+
         return NextResponse.json(
-          { 
+          {
             ...errorBody,
             message: errorMessage,
             valid: false,
-          }, 
+          },
           { status: result.error.status }
         );
       }
-      return NextResponse.json({ 
+      return NextResponse.json({
         message: "Validation failed",
         valid: false,
       }, { status: result.status });
@@ -107,7 +107,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     // Backend returns validationStatus: "VALID" or "INVALID" which indicates the actual validation result
     const validationStatus = result.data?.validationStatus;
     const isValid = validationStatus === "VALID";
-    
+
     // Determine message based on validation status
     let message: string;
     if (validationStatus === "VALID") {
@@ -146,7 +146,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     };
 
     return NextResponse.json(formattedResponse, { status: 200 });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { message: "Internal Server Error" },
       { status: 500 }

@@ -1,4 +1,4 @@
-// Simplified user profile types - remove Stack Auth dependencies
+// User profile types
 
 export type AppRole = "organizer" | "staff" | "attendee" | "admin";
 

@@ -33,15 +33,27 @@ export function AppHeader() {
   const links = role ? ROLE_PAGES[role] || [] : [];
 
   return (
-    <header className="border-b border-slate-800 bg-slate-900">
-      <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-        <HomepageButton />
-        <nav className="hidden items-center gap-4 text-sm font-medium md:flex">
+    <header className="sticky top-0 z-50 w-full border-b border-[var(--color-border)] bg-[var(--color-background)]/80 backdrop-blur-xl transition-all duration-200">
+      <div className="container mx-auto flex h-20 max-w-7xl items-center justify-between px-6 lg:px-12">
+        <div className="flex items-center gap-2">
+          <HomepageButton />
+        </div>
+
+        <nav className="absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 transform items-center gap-8 md:flex">
+          <HeaderLink
+            item={{ href: "/browse-events", label: "Browse Events" }}
+          />
           {links.map((item) => (
             <HeaderLink key={item.href} item={item} />
           ))}
         </nav>
-        <AccountButton />
+
+        <div className="flex items-center gap-4">
+          <nav className="flex items-center gap-6 md:hidden">
+            {/* Mobile or tablet view fallback if needed, for now just keeping structure */}
+          </nav>
+          <AccountButton />
+        </div>
       </div>
     </header>
   );

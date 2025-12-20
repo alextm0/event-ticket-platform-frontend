@@ -54,7 +54,7 @@ export default function PurchaseTicketButton({
     <>
       <button
         disabled={isSoldOut || isInactive || isLoading}
-        className="mt-4 w-full rounded bg-sky-500 px-3 py-2 text-sm font-medium text-slate-900 hover:bg-sky-400 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
+        className="mt-4 w-full rounded-[var(--radius-md)] bg-[var(--color-primary)] px-3 py-2 text-sm font-medium text-[var(--color-background)] hover:bg-[var(--color-primary)]/90 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-[var(--color-surface)] disabled:text-[var(--color-secondary)] transition-all duration-200"
         onClick={handleClick}
       >
         {isLoading ? 'Processing...' : isSoldOut || isInactive ? 'Unavailable' : 'Purchase Ticket'}

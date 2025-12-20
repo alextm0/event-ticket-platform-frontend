@@ -1,11 +1,22 @@
-import Ticket from "@/types/ticket-model";
+"use client";
+
 import React, { useEffect, useState } from "react";
 import QRCode from "react-qr-code";
+import Ticket from "@/types/ticket-model";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator"; // You might need to create this if it doesn't exist, or just use a div
+import { Calendar, Clock, MapPin, User, Download, Share2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type TicketDetailsModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  children?: React.ReactNode;
   ticket: Ticket;
 };
 
@@ -17,171 +28,139 @@ type QrCodeResponse = {
   generatedAt?: string;
 };
 
-function TicketDetailsModal({ isOpen, onClose, children, ticket }: TicketDetailsModalProps) {
+// Simple Separator if not available in UI components yet
+const Divider = () => <div className="h-[1px] w-full bg-dashed border-t border-dashed border-[var(--color-border)] my-4" />;
+
+
+export default function TicketDetailsModal({ isOpen, onClose, ticket }: TicketDetailsModalProps) {
   const [qrCode, setQrCode] = useState<QrCodeResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
+    if (!isOpen) return;
 
     let cancelled = false;
     async function fetchQr() {
       setLoading(true);
       setError(null);
-
       try {
-        const response = await fetch(`/api/tickets/${ticket.id}/qr-code`, {
-          method: "GET",
-        });
-
-        if (!response.ok) {
-          const body = await response.json().catch(() => ({}));
-          throw new Error(body?.message || "Failed to load QR code");
-        }
-
+        const response = await fetch(`/api/tickets/${ticket.id}/qr-code`);
+        if (!response.ok) throw new Error("Failed to load QR code");
         const data = await response.json();
-        if (!cancelled) {
-          setQrCode(data);
-        }
+        if (!cancelled) setQrCode(data);
       } catch (err) {
-        console.error("Failed to fetch ticket QR code", err);
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Failed to load QR code");
-        }
+        if (!cancelled) setError("Failed to load QR");
       } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+        if (!cancelled) setLoading(false);
       }
     }
-
     fetchQr();
-
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [isOpen, ticket.id]);
 
-  if (!isOpen) return null;
+  const qrDataUrl = qrCode?.codeData?.startsWith("data:")
+    ? qrCode.codeData
+    : qrCode?.codeData
+      ? `data:image/png;base64,${qrCode.codeData}`
+      : null;
 
-  const qrDataUrl = qrCode?.codeData
-    ? qrCode.codeData.startsWith("data:")
-      ? qrCode.codeData
-      : `data:image/png;base64,${qrCode.codeData}`
-    : null;
+  const qrValue = qrCode?.url ?? qrCode?.id ?? ticket.qr_code ?? ticket.qr_code_id ?? "inv";
 
-  const qrValueForGenerator =
-    qrCode?.url ?? qrCode?.id ?? ticket.qr_code ?? ticket.qr_code_id ?? "";
+  const eventDate = ticket.event_start_time ? new Date(ticket.event_start_time) : null;
 
   return (
-    <div
-      onClick={onClose}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4"
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="relative max-h-[90vh] w-full max-w-2xl overflow-hidden rounded-lg bg-slate-800 shadow-2xl"
-      >
-        {/* Header */}
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-700 bg-slate-800 px-6 py-4">
-          <h2 className="text-xl font-semibold text-slate-100">Ticket Details</h2>
-          <button
-            onClick={onClose}
-            className="text-slate-400 transition-colors hover:text-slate-200"
-            aria-label="Close modal"
-          >
-            <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-md p-0 overflow-hidden bg-transparent border-none shadow-2xl">
+        <DialogTitle className="sr-only">
+          Ticket Details - {ticket.event_title}
+        </DialogTitle>
+        <div className="relative flex flex-col w-full bg-[var(--color-surface)] rounded-3xl overflow-hidden border border-[var(--color-border)]">
+          {/* Top colored visualization */}
+          <div className="h-32 bg-gradient-to-br from-emerald-900 to-[#1a1d23] relative p-6 flex flex-col justify-end">
+            <div className="absolute top-0 right-0 p-32 bg-emerald-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+            <p className="relative z-10 text-emerald-400 font-bold tracking-widest text-xs uppercase mb-1">Pass</p>
+            <h2 className="relative z-10 text-white text-2xl font-bold leading-tight line-clamp-2">
+              {ticket.event_title}
+            </h2>
+          </div>
 
-        {/* Scrollable Content */}
-        <div className="max-h-[calc(90vh-80px)] overflow-y-auto px-6 py-4">
-          <div className="space-y-4">
-            {/* Event overview */}
-            <div className="rounded-lg bg-slate-700 p-4 space-y-2">
-              <p className="text-sm uppercase tracking-wide text-slate-400">Event</p>
-              <p className="text-lg font-semibold text-slate-100">{ticket.event_title ?? "Event"}</p>
-              {ticket.event_description ? (
-                <p className="text-sm text-slate-400">{ticket.event_description}</p>
-              ) : null}
-              <div className="text-sm text-slate-400 space-y-1">
-                {ticket.event_location ? <p>📍 {ticket.event_location}</p> : null}
-                {ticket.event_start_time ? (
-                  <p>🗓 {new Date(ticket.event_start_time).toLocaleString()}</p>
-                ) : null}
+          <div className="p-6 pt-4 space-y-4">
+
+            {/* Info Grid */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <p className="text-[10px] uppercase tracking-wider text-[var(--color-secondary)]">Date</p>
+                <div className="flex items-center text-white text-sm font-medium">
+                  <Calendar className="w-3 h-3 mr-1.5 text-emerald-500" />
+                  <span suppressHydrationWarning>{eventDate ? eventDate.toLocaleDateString() : 'TBD'}</span>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[10px] uppercase tracking-wider text-[var(--color-secondary)]">Time</p>
+                <div className="flex items-center text-white text-sm font-medium">
+                  <Clock className="w-3 h-3 mr-1.5 text-emerald-500" />
+                  <span suppressHydrationWarning>{eventDate ? eventDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'TBD'}</span>
+                </div>
+              </div>
+              <div className="col-span-2 space-y-1">
+                <p className="text-[10px] uppercase tracking-wider text-[var(--color-secondary)]">Location</p>
+                <div className="flex items-center text-white text-sm font-medium">
+                  <MapPin className="w-3 h-3 mr-1.5 text-emerald-500 shrink-0" />
+                  <span className="truncate">{ticket.event_location || 'TBD'}</span>
+                </div>
               </div>
             </div>
-            {/* QR Code */}
-            <div className="rounded-lg bg-slate-700 p-4 flex flex-col items-center justify-center gap-3">
-              {loading ? (
-                <p className="text-sm text-slate-400">Generating QR code…</p>
-              ) : error ? (
-                <p className="text-sm text-rose-300">{error}</p>
-              ) : qrDataUrl || qrValueForGenerator ? (
-                <>
-                  {qrDataUrl ? (
-                    <img
-                      src={qrDataUrl}
-                      alt="Ticket QR code"
-                      className="max-w-[200px] rounded bg-white p-2"
-                    />
+
+            <Divider />
+
+            {/* Ticket Type & User */}
+            <div className="flex justify-between items-center bg-[var(--color-background)]/50 p-4 rounded-xl border border-[var(--color-border)]">
+              <div>
+                <p className="text-[10px] uppercase tracking-wider text-[var(--color-secondary)]">Ticket Type</p>
+                <p className="text-white font-semibold">{ticket.ticket_type_name ?? "General"}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] uppercase tracking-wider text-[var(--color-secondary)]">Status</p>
+                <p className={cn(
+                  "font-semibold capitalize",
+                  ticket.status === 'approved' || ticket.status === 'purchased' ? "text-emerald-400" : "text-[var(--color-secondary)]"
+                )}>{ticket.status}</p>
+              </div>
+            </div>
+
+            {/* QR Code Section */}
+            <div className="flex flex-col items-center justify-center py-4">
+              <div className="bg-white p-4 rounded-2xl shadow-lg relative">
+                {loading ? (
+                  <div className="w-[180px] h-[180px] flex items-center justify-center text-slate-400 text-xs animate-pulse">
+                    Generating...
+                  </div>
+                ) : (
+                  qrDataUrl ? (
+                    <img src={qrDataUrl} alt="QR" className="w-[180px] h-[180px] object-contain" />
                   ) : (
-                    <QRCode
-                      value={qrValueForGenerator}
-                      size={180}
-                      style={{ height: "auto", width: "100%", maxWidth: "200px" }}
-                    />
-                  )}
-                  {qrCode?.status ? (
-                    <p className="text-xs uppercase tracking-wide text-slate-400">Status: {qrCode.status}</p>
-                  ) : null}
-                </>
-              ) : (
-                <p className="text-sm text-slate-400">No QR code available.</p>
-              )}
-            </div>
-            {/* Ticket summary */}
-            <div className="rounded-lg bg-slate-700 p-4">
-              <p className="text-sm text-slate-400">Ticket type</p>
-              <p className="mt-1 text-lg font-medium text-slate-100">
-                {ticket.ticket_type_name ?? ticket.ticket_type ?? "Ticket"}
+                    <QRCode value={qrValue} size={180} />
+                  )
+                )}
+              </div>
+              <p className="mt-3 text-[10px] text-[var(--color-secondary)] uppercase tracking-widest">
+                Scan at entrance
               </p>
-              {ticket.purchase_date ? (
-                <p className="mt-2 text-xs text-slate-400">
-                  Purchased {new Date(ticket.purchase_date).toLocaleString()}
-                </p>
-              ) : null}
             </div>
 
-            {/* Status */}
-            {ticket.status && (
-              <div className="rounded-lg bg-slate-700 p-4">
-                <p className="text-sm text-slate-400">Status</p>
-                <p className="mt-1 text-lg font-medium text-slate-100 capitalize">{ticket.status}</p>
-              </div>
-            )}
+            <div className="flex gap-2 pt-2">
+              <Button className="flex-1 bg-[var(--color-surface)] border border-[var(--color-border)] hover:bg-[var(--color-surface)]/80 text-white" variant="outline">
+                <Share2 className="w-4 h-4 mr-2" /> Share
+              </Button>
+              <Button className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white border-none">
+                <Download className="w-4 h-4 mr-2" /> Save PDF
+              </Button>
+            </div>
 
-            {/* Created At */}
-            {ticket.created_at && (
-              <div className="rounded-lg bg-slate-700 p-4">
-                <p className="text-sm text-slate-400">Created At</p>
-                <p className="mt-1 text-lg font-medium text-slate-100">
-                  {new Date(ticket.created_at).toLocaleString()}
-                </p>
-              </div>
-            )}
-
-            {children}
           </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
-
-export default TicketDetailsModal;

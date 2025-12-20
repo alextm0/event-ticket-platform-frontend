@@ -19,7 +19,7 @@ function isAllowedRole(value: string): value is AppRole {
 export async function completeOnboarding(
   _prevState: CompleteOnboardingState,
   formData: FormData,
-): Promise<CompleteOnboardingState | void> {
+): Promise<CompleteOnboardingState> {
   const rawRole = formData.get("role");
   if (typeof rawRole !== "string") {
     return { error: "Please select a valid role to continue." };

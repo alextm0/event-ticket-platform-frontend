@@ -36,7 +36,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
           "X-User-Id": userId,
         },
       });
-    } catch (fetchError) {
+    } catch {
       return NextResponse.json(
         { message: "Failed to connect to backend API" },
         { status: 500 }
@@ -45,7 +45,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
 
     if (!backendResponse.ok) {
       const responseText = await backendResponse.text();
-      let errorBody: any;
+      let errorBody: unknown;
       try {
         errorBody = JSON.parse(responseText);
       } catch {
@@ -63,10 +63,10 @@ export async function GET(_request: Request, { params }: RouteParams) {
     }
 
     const responseText = await backendResponse.text();
-    let data: any;
+    let data: unknown;
     try {
       data = JSON.parse(responseText);
-    } catch (parseError) {
+    } catch {
       return NextResponse.json(
         { message: "Backend returned invalid JSON response" },
         { status: 500 }
@@ -74,7 +74,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
     }
 
     return NextResponse.json(data, { status: backendResponse.status });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { message: "Internal Server Error" },
       { status: 500 }

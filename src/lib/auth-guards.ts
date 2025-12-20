@@ -10,6 +10,9 @@ interface RequireRoleOptions {
 // Simple session check - replace with actual backend session validation
 async function getSessionRole(): Promise<AppRole | null> {
   const cookieStore = await cookies();
+  const token = cookieStore.get("authToken")?.value;
+  if (!token) return null; // Must have token to have a role
+
   const role = cookieStore.get("userRole")?.value;
   if (role && ["admin", "organizer", "staff", "attendee"].includes(role)) {
     return role as AppRole;
@@ -28,13 +31,13 @@ export async function requireRole<Role extends AppRole>(
   options: RequireRoleOptions = {},
 ) {
   const authenticated = await isAuthenticated();
-  
+
   if (!authenticated) {
     redirect("/sign-in");
   }
 
   const userRole = await getSessionRole();
-  
+
   if (!userRole || userRole !== allowedRole) {
     redirect("/");
   }
@@ -44,7 +47,7 @@ export async function requireRole<Role extends AppRole>(
 
 export async function requireAuth() {
   const authenticated = await isAuthenticated();
-  
+
   if (!authenticated) {
     redirect("/sign-in");
   }

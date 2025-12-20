@@ -3,11 +3,12 @@ import { serverRuntimeConfig } from "@/config/server-env";
 
 export async function GET() {
   try {
-    const response = await fetch(`${serverRuntimeConfig.backendApiUrl}/api/auth/signupStatus`, {
+    const response = await fetch(`${serverRuntimeConfig.backendApiUrl}/api/v1/auth/signupStatus`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
       },
+      cache: "no-store",
     });
 
     if (!response.ok) {

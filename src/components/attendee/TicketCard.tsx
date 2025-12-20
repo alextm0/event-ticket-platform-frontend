@@ -1,140 +1,116 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Ticket from "@/types/ticket-model";
-import React, { useEffect, useState } from "react";
-import "./ticket-card.css";
 import TicketDetailsModal from "./TicketDetailsModal";
+import { Button } from "@/components/ui/button";
+import { Calendar, MapPin, Ticket as TicketIcon, Clock } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type Props = { ticket: Ticket };
 
-function TicketCard({ ticket }: Props) {
-  const created = ticket?.created_at ? new Date(ticket.created_at).toLocaleString() : "—";
-  const checked = ticket?.checked_in_at ? new Date(ticket.checked_in_at).toLocaleString() : null;
+export default function TicketCard({ ticket }: Props) {
+  const [open, setOpen] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
   const eventDate = ticket.event_start_time
-    ? new Date(ticket.event_start_time).toLocaleString()
+    ? new Date(ticket.event_start_time).toLocaleDateString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    })
+    : "TBD";
+
+  const eventTime = ticket.event_start_time
+    ? new Date(ticket.event_start_time).toLocaleTimeString(undefined, {
+      hour: '2-digit',
+      minute: '2-digit'
+    })
     : null;
 
-  const [qrSrc, setQrSrc] = useState<string | null>(null);
-  const [qrError, setQrError] = useState<string | null>(null);
-  const [loadingQr, setLoadingQr] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    async function fetchQr() {
-      setLoadingQr(true);
-      setQrError(null);
-      try {
-        const response = await fetch(`/api/tickets/${ticket.id}/qr-code`);
-        if (!response.ok) {
-          const body = await response.json().catch(() => ({}));
-          throw new Error(body?.message || "Failed to load QR code");
-        }
-        const data = await response.json();
-        if (cancelled) {
-          return;
-        }
-        const src =
-          data.codeData?.startsWith("data:")
-            ? data.codeData
-            : data.codeData
-              ? `data:image/png;base64,${data.codeData}`
-              : data.url ?? data.id ?? ticket.qr_code ?? ticket.qr_code_id ?? null;
-        setQrSrc(src);
-      } catch (error) {
-        if (!cancelled) {
-          setQrError(error instanceof Error ? error.message : "Failed to load QR code");
-        }
-      } finally {
-        if (!cancelled) {
-          setLoadingQr(false);
-        }
-      }
-    }
-    fetchQr();
-    return () => {
-      cancelled = true;
-    };
-  }, [ticket.id, ticket.qr_code, ticket.qr_code_id]);
-
-  const [open, setOpen] = React.useState(false);
-  const handleClose = () => {
-    setOpen(false);
-  };
-  const handleOpen = () => {
-    setOpen(true);
-  };
-
   return (
-    <article className="ticket-card" aria-labelledby={`ticket-${String(ticket.id)}`}>
-      <header className="ticket-header">
-        <div>
-          <p className="text-xs uppercase tracking-wide text-slate-500">
-            {ticket.event_title ?? "Event"}
-          </p>
-          <h3 id={`ticket-${String(ticket.id)}`} className="ticket-type">
-            {ticket.ticket_type_name ?? ticket.ticket_type ?? "Ticket"}
-          </h3>
+    <>
+      <div
+        className="group relative flex flex-col overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-surface)]/50 shadow-sm transition-all duration-300 hover:shadow-lg hover:border-[var(--color-primary)]/30"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        {/* Status Badge */}
+        <div className="absolute top-4 right-4 z-10">
+          <span
+            className={cn(
+              "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize shadow-sm backdrop-blur-md",
+              ticket.status === "approved" || ticket.status === "purchased"
+                ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/20"
+                : ticket.status === "checked_in" || ticket.status === "checked-in"
+                  ? "bg-blue-500/20 text-blue-400 border border-blue-500/20"
+                  : ticket.status === "cancelled"
+                    ? "bg-red-500/20 text-red-400 border border-red-500/20"
+                    : "bg-slate-500/20 text-slate-400 border border-slate-500/20"
+            )}
+          >
+            {ticket.status?.replace('_', ' ') || "pending"}
+          </span>
         </div>
-        <span className={`ticket-status status-${String(ticket.status.toLowerCase() || "pending")}`}>
-          {ticket.status || "pending"}
-        </span>
-      </header>
 
-      <div className="ticket-body">
-        <div className="ticket-details">
-          <dl>
-            <div className="ticket-row">
-              <dt>Ticket ID</dt>
-              <dd>{String(ticket.id)}</dd>
+        {/* Card Content */}
+        <div className="p-6 flex-1 flex flex-col relative z-0">
+
+          {/* Header */}
+          <div className="mb-4 pr-12">
+            <h3 className="text-xl font-bold text-white group-hover:text-[var(--color-primary)] transition-colors line-clamp-1">
+              {ticket.event_title ?? "Event Name"}
+            </h3>
+            <div className="mt-1 flex items-center text-sm font-medium text-[var(--color-secondary)]">
+              <TicketIcon className="mr-2 h-4 w-4 text-[var(--color-primary)]" />
+              <span className="truncate">
+                {ticket.ticket_type_name ?? ticket.ticket_type ?? "General Admission"}
+              </span>
             </div>
-            <div className="ticket-row">
-              <dt>Event</dt>
-              <dd>{ticket.event_title ?? "—"}</dd>
+          </div>
+
+          {/* Details */}
+          <div className="space-y-3 mt-auto">
+            <div className="flex items-center text-sm text-[var(--color-secondary)]">
+              <Calendar className="mr-2 h-4 w-4 text-[var(--color-primary)] shrink-0" />
+              <span suppressHydrationWarning>{eventDate}</span>
             </div>
-            <div className="ticket-row">
-              <dt>Date</dt>
-              <dd>{eventDate ?? "—"}</dd>
+            {eventTime && (
+              <div className="flex items-center text-sm text-[var(--color-secondary)]">
+                <Clock className="mr-2 h-4 w-4 text-[var(--color-primary)] shrink-0" />
+                <span suppressHydrationWarning>{eventTime}</span>
+              </div>
+            )}
+            <div className="flex items-center text-sm text-[var(--color-secondary)]">
+              <MapPin className="mr-2 h-4 w-4 text-[var(--color-primary)] shrink-0" />
+              <span className="truncate">{ticket.event_location ?? "Location TBD"}</span>
             </div>
-            <div className="ticket-row">
-              <dt>Location</dt>
-              <dd>{ticket.event_location ?? "—"}</dd>
-            </div>
-            <div className="ticket-row">
-              <dt>Created</dt>
-              <dd>{created}</dd>
-            </div>
-            <div className="ticket-row">
-              <dt>Checked in</dt>
-              <dd>{checked ?? "Not checked in"}</dd>
-            </div>
-          </dl>
+          </div>
         </div>
-        <div className="ticket-qr flex flex-col items-center justify-center">
-          {loadingQr ? (
-            <p className="text-xs text-slate-500">Loading QR…</p>
-          ) : qrError ? (
-            <p className="text-xs text-rose-400">{qrError}</p>
-          ) : qrSrc ? (
-            <img
-              src={qrSrc}
-              alt="Ticket QR"
-              className="h-32 w-32 rounded bg-white p-2 object-contain"
-            />
-          ) : (
-            <p className="text-xs text-slate-500">No QR available</p>
-          )}
+
+        {/* Styles Bottom Decoration */}
+        <div className="relative h-16 bg-[var(--color-background)]/30 border-t border-[var(--color-border)] p-4 flex items-center justify-between backdrop-blur-sm">
+          <div className="text-xs text-[var(--color-secondary)]">
+            <span className="block opacity-60">Ticket ID</span>
+            <span className="font-mono">{ticket.id.slice(0, 8)}...</span>
+          </div>
+
+          <Button
+            variant="mint"
+            size="sm"
+            onClick={() => setOpen(true)}
+            className="shadow-sm"
+          >
+            View Ticket
+          </Button>
         </div>
       </div>
-      <TicketDetailsModal isOpen={open} onClose={handleClose} ticket={ticket} />
-      <div className="ticket-footer">
-        <button className="btn-outline" type="button" onClick={handleOpen}>
-          Details
-        </button>
-        <button className="btn-primary" type="button">
-          Download
-        </button>
-      </div>
-    </article>
+
+      <TicketDetailsModal
+        isOpen={open}
+        onClose={() => setOpen(false)}
+        ticket={ticket}
+      />
+    </>
   );
 }
-
-export default TicketCard;

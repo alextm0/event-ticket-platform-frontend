@@ -1,11 +1,14 @@
 
 export interface Event {
-  id: number;
-  name: string;
+  id: string;
+  title: string;
+  name?: string;
   description: string;
-  date: string;
   location: string;
-  organizer: {
+  startTime: string;
+  endTime: string;
+  status: string;
+  organizer?: {
     id: string;
     name: string;
   };

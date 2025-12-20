@@ -1,7 +1,6 @@
 import { serverRuntimeConfig } from "@/config/server-env";
 import { Event, PublishedEvent, EventTicketType } from "@/types";
 import Ticket from "@/types/ticket-model";
-import { mockedEvents } from "@/lib/mocked-data";
 import { cookies } from "next/headers";
 
 interface CreateUserPayload {
@@ -114,10 +113,9 @@ export async function createBackendUser(
 }
 
 export async function getEvents(
-  options: { 
-    timeoutMs?: number; 
-    maxRetries?: number; 
-    useMockData?: boolean;
+  options: {
+    timeoutMs?: number;
+    maxRetries?: number;
     organizerId?: string;
   } = {},
 ): Promise<Event[]> {
@@ -125,10 +123,7 @@ export async function getEvents(
   if (!options) {
     options = {};
   }
-  
-  if (options.useMockData) {
-    return Promise.resolve(mockedEvents);
-  }
+
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const maxRetries = options.maxRetries ?? DEFAULT_MAX_RETRIES;
 
@@ -147,7 +142,7 @@ export async function getEvents(
   const headers: Record<string, string> = {
     Authorization: `Bearer ${token}`,
   };
-  
+
   // If organizerId is provided, also add X-User-Id header (backend might use either)
   if (options.organizerId) {
     headers["X-User-Id"] = options.organizerId;
@@ -275,7 +270,49 @@ export async function getPublishedEvent(eventId: string): Promise<PublishedEvent
     const data = await response.json();
     return data as PublishedEvent;
   } catch (error) {
-    console.error(`Failed to fetch published event ${eventId}`, error);
+    // We don't log error here because it's common to fail when checking for draft events
+    // and we handle the fallback in the UI.
+    throw error;
+  }
+}
+
+export async function getEvent(eventId: string): Promise<Event> {
+  try {
+    const token = await getAuthToken();
+    if (!token) {
+      throw new Error("No authentication token available.");
+    }
+
+    const userId = await getCurrentUserId();
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    };
+
+    if (userId) {
+      headers["X-User-Id"] = userId;
+    }
+
+    const response = await fetch(
+      `${serverRuntimeConfig.backendApiUrl}/api/v1/events/${eventId}`,
+      {
+        method: "GET",
+        headers,
+        cache: "no-store",
+      },
+    );
+
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(
+        `Failed to fetch event (${response.status} ${response.statusText}): ${body}`,
+      );
+    }
+
+    const data = await response.json();
+    return data as Event;
+  } catch (error) {
+    console.error(`Failed to fetch event ${eventId}`, error);
     throw error;
   }
 }
@@ -286,7 +323,7 @@ export async function getEventTicketTypes(eventId: string): Promise<EventTicketT
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
     };
-    
+
     if (token) {
       headers.Authorization = `Bearer ${token}`;
     }
@@ -325,9 +362,10 @@ export async function getEventTicketTypes(eventId: string): Promise<EventTicketT
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function normalizeTicketResponse(raw: any): Ticket {
-const toIsoString = (value: string | null | undefined) =>
-  value ? new Date(value).toISOString() : undefined;
+  const toIsoString = (value: string | null | undefined) =>
+    value ? new Date(value).toISOString() : undefined;
 
   return {
     id: raw.id ?? raw.ticketId ?? "",
@@ -426,6 +464,151 @@ export async function buyTicket(eventId: string, ticketTypeId: string, quantity:
   return { orderId: data.orderId || data.id };
 }
 
+export interface CreateEventPayload {
+  title: string;
+  description: string;
+  location: string;
+  startTime: string;
+  endTime: string;
+}
+
+export async function createEvent(payload: CreateEventPayload): Promise<Event> {
+  const token = await getAuthToken();
+  if (!token) {
+    throw new Error("No authentication token available.");
+  }
+
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    throw new Error("No user ID available.");
+  }
+
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+    "X-User-Id": userId,
+  };
+
+  const response = await fetch(`${serverRuntimeConfig.backendApiUrl}/api/v1/events`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      ...payload,
+      organizerId: userId,
+      status: "DRAFT"
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Failed to create event (${response.status} ${response.statusText}): ${body}`);
+  }
+
+  return response.json();
+}
+
+export async function deleteEvent(eventId: string): Promise<void> {
+  const token = await getAuthToken();
+  if (!token) {
+    throw new Error("No authentication token available.");
+  }
+
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    throw new Error("No user ID available.");
+  }
+
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+    "X-User-Id": userId,
+  };
+
+  const response = await fetch(`${serverRuntimeConfig.backendApiUrl}/api/v1/events/${eventId}`, {
+    method: "DELETE",
+    headers,
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Failed to delete event (${response.status} ${response.statusText}): ${body}`);
+  }
+}
+
+export interface UpdateEventPayload {
+  title?: string;
+  description?: string;
+  location?: string;
+  startTime?: string;
+  endTime?: string;
+  status?: string;
+}
+
+export async function updateEvent(eventId: string, payload: UpdateEventPayload): Promise<Event> {
+  const token = await getAuthToken();
+  if (!token) {
+    throw new Error("No authentication token available.");
+  }
+
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    throw new Error("No user ID available.");
+  }
+
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+    "X-User-Id": userId,
+  };
+
+  const response = await fetch(`${serverRuntimeConfig.backendApiUrl}/api/v1/events/${eventId}`, {
+    method: "PUT",
+    headers,
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Failed to update event details (${response.status} ${response.statusText}): ${body}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Specifically for status transitions (e.g., PUBLISHED -> DRAFT)
+ */
+export async function updateEventStatus(eventId: string, status: string): Promise<Event> {
+  const token = await getAuthToken();
+  if (!token) {
+    throw new Error("No authentication token available.");
+  }
+
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    throw new Error("No user ID available.");
+  }
+
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+    "X-User-Id": userId,
+  };
+
+  const response = await fetch(`${serverRuntimeConfig.backendApiUrl}/api/v1/events/${eventId}`, {
+    method: "PATCH",
+    headers,
+    body: JSON.stringify({ status }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Failed to update event status (${response.status} ${response.statusText}): ${body}`);
+  }
+
+  return response.json();
+}
+
 export interface StaffAssignedEvent {
   eventId: string;
   eventName: string;
@@ -490,4 +673,110 @@ export async function getStaffAssignedEvents(staffId: string): Promise<StaffAssi
     eventId: event.eventId,
     eventName: event.eventName,
   }));
+}
+
+export interface StaffMember {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+}
+
+/**
+ * Get all users with the STAFF role
+ */
+export async function getGlobalStaffMembers(): Promise<StaffMember[]> {
+  const token = await getAuthToken();
+  if (!token) {
+    throw new Error("No authentication token available.");
+  }
+
+  const response = await fetch(`${serverRuntimeConfig.backendApiUrl}/api/v1/users/staff`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Failed to fetch staff members (${response.status} ${response.statusText}): ${body}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Get staff members assigned to a specific event
+ */
+export async function getEventStaffMembers(eventId: string): Promise<StaffMember[]> {
+  const token = await getAuthToken();
+  if (!token) {
+    throw new Error("No authentication token available.");
+  }
+
+  const response = await fetch(`${serverRuntimeConfig.backendApiUrl}/api/v1/events/${eventId}/staff`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Failed to fetch event staff (${response.status} ${response.statusText}): ${body}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Assign a staff member to an event
+ */
+export async function assignStaffToEvent(eventId: string, staffId: string): Promise<void> {
+  const token = await getAuthToken();
+  if (!token) {
+    throw new Error("No authentication token available.");
+  }
+
+  const response = await fetch(`${serverRuntimeConfig.backendApiUrl}/api/v1/events/${eventId}/staff`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ staffId }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Failed to assign staff (${response.status} ${response.statusText}): ${body}`);
+  }
+}
+
+/**
+ * Remove a staff member from an event
+ */
+export async function removeStaffFromEvent(eventId: string, staffId: string): Promise<void> {
+  const token = await getAuthToken();
+  if (!token) {
+    throw new Error("No authentication token available.");
+  }
+
+  const response = await fetch(`${serverRuntimeConfig.backendApiUrl}/api/v1/events/${eventId}/staff/${staffId}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Failed to remove staff (${response.status} ${response.statusText}): ${body}`);
+  }
 }
