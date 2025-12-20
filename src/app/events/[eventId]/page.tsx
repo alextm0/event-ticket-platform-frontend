@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { getPublishedEvent, getEventTicketTypes } from "@/lib/backend-client";
+import PurchaseTicketButton from "@/components/events/PurchaseTicketButton";
 
 interface EventDetailsPageProps {
   params: Promise<{
@@ -166,6 +167,14 @@ export default async function EventDetailsPage({ params }: EventDetailsPageProps
                               Sold Out
                             </span>
                           )}
+                        </div>
+                        <div>
+                          <PurchaseTicketButton
+                            eventId={event.id}
+                            ticketTypeId={ticketType.id}
+                            isSoldOut={isSoldOut}
+                            isInactive={isInactive}
+                          />
                         </div>
                       </div>
                     );
