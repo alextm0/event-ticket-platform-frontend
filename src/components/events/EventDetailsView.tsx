@@ -11,12 +11,24 @@ import { TicketTypeManagementWrapper } from "@/components/organizer/TicketTypeMa
 import { TicketSalesPreview } from "@/components/organizer/TicketSalesPreview";
 import { OrganizerManagementBar } from "@/components/organizer/OrganizerManagementBar";
 import { EventAnalytics } from "@/components/organizer/EventAnalytics";
-import { PublishedEvent, StaffMember, TicketType } from "@/types";
+import { PublishedEvent, StaffMember, EventTicketType } from "@/types";
 import { cn } from "@/lib/utils";
+
+interface RawTicketType {
+    id: string;
+    name: string;
+    description?: string;
+    price: number;
+    currency?: string;
+    total_quantity: number;
+    sold_count: number;
+    active: boolean;
+    event_id?: string;
+}
 
 interface EventDetailsViewProps {
     event: PublishedEvent;
-    ticketTypes: TicketType[];
+    ticketTypes: RawTicketType[] | EventTicketType[]; // Accept both for flexibility during migration
     isOrganizer: boolean;
     assignedStaff: StaffMember[];
     availableStaff: StaffMember[];
@@ -30,6 +42,20 @@ export function EventDetailsView({
     availableStaff
 }: EventDetailsViewProps) {
     const [activeTab, setActiveTab] = useState<"overview" | "staff" | "analytics" | "tickets">("overview");
+
+    // Normalize ticket types to camelCase (EventTicketType)
+    const normalizedTicketTypes: EventTicketType[] = ticketTypes.map((t: any) => ({
+        id: t.id,
+        name: t.name,
+        description: t.description,
+        price: t.price,
+        currency: t.currency,
+        // Map snake_case to camelCase, fallback to camelCase if already normalized
+        totalQuantity: t.total_quantity !== undefined ? t.total_quantity : t.totalQuantity,
+        soldCount: t.sold_count !== undefined ? t.sold_count : t.soldCount,
+        active: t.active,
+        eventId: t.event_id !== undefined ? t.event_id : t.eventId,
+    }));
 
     const startDate = new Date(event.startTime);
     const coverImage = "https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?q=80&w=2074&auto=format&fit=crop";
@@ -186,13 +212,13 @@ export function EventDetailsView({
                         {/* Tab Content: Tickets Management */}
                         {activeTab === "tickets" && isOrganizer && (
                             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                <TicketTypeManagementWrapper eventId={event.id} ticketTypes={ticketTypes} />
+                                <TicketTypeManagementWrapper eventId={event.id} ticketTypes={normalizedTicketTypes} />
                             </div>
                         )}
 
                         {/* Tab Content: Analytics */}
                         {activeTab === "analytics" && isOrganizer && (
-                            <EventAnalytics eventId={event.id} ticketTypes={ticketTypes} event={event} />
+                            <EventAnalytics eventId={event.id} ticketTypes={normalizedTicketTypes} event={event} />
                         )}
                     </div>
 
@@ -214,9 +240,9 @@ export function EventDetailsView({
 
                                 <div className="p-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
                                     {isOrganizer ? (
-                                        <TicketSalesPreview ticketTypes={ticketTypes} />
+                                        <TicketSalesPreview ticketTypes={normalizedTicketTypes} />
                                     ) : (
-                                        <TicketTypeList eventId={event.id} ticketTypes={ticketTypes} />
+                                        <TicketTypeList eventId={event.id} ticketTypes={normalizedTicketTypes} />
                                     )}
                                 </div>
 

@@ -49,9 +49,15 @@ export function useTicketValidator({ eventId, userId, onValidationComplete }: Us
             const isDuplicate = !valid && !isWrongEvent && data.ticketStatus === "CHECKED_IN";
 
             let newStatus: ScanStatus = 'invalid';
-            if (valid) newStatus = 'valid';
-            // Note: isWrongEvent check prevents it from falling into duplicate
-            else if (isDuplicate) newStatus = 'duplicate';
+
+            // Prioritize wrong event check
+            if (isWrongEvent) {
+                newStatus = 'wrong-event';
+            } else if (valid) {
+                newStatus = 'valid';
+            } else if (isDuplicate) {
+                newStatus = 'duplicate';
+            }
 
             setStatus(newStatus);
 
