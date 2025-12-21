@@ -2,12 +2,12 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import jsQR from "jsqr";
-import { validateTicket } from "@/lib/validate-ticket";
+import { validateTicket } from "@/lib/validation/client";
 import {
   isTicketValid,
   getValidationMessage,
   sanitizeValidationErrorMessage,
-} from "@/lib/ticket-validation-helpers";
+} from "@/lib/validation/helpers";
 
 interface ValidationPopup {
   show: boolean;
@@ -33,20 +33,20 @@ export default function QRScannerClient({ eventId }: Props) {
     async (data: string) => {
       // Prevent validation if no event is selected
       if (!eventId) {
-        setPopup({ 
-          show: true, 
-          isValid: false, 
-          message: "Please select an event before scanning tickets." 
+        setPopup({
+          show: true,
+          isValid: false,
+          message: "Please select an event before scanning tickets."
         });
         return;
       }
 
       try {
         const result = await validateTicket(eventId, data, { code: data });
-        
+
         const isValid = isTicketValid(result);
         const message = getValidationMessage(result);
-        
+
         setPopup({ show: true, isValid, message });
       } catch (err) {
         // Silently handle error and show user-friendly message

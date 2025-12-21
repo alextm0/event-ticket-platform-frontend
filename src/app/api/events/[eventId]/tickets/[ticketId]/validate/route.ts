@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { validateTicketWithBackend } from "@/lib/shared/ticket-validation";
+import { validateTicketWithBackend } from "@/lib/validation/server";
+
 
 interface RouteParams {
   params: Promise<{

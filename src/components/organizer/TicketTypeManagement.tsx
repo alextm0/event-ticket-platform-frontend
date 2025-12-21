@@ -91,11 +91,10 @@ export function TicketTypeManagement({
                             return (
                                 <div
                                     key={ticketType.id}
-                                    className={`rounded-[var(--radius-lg)] border p-4 transition-all duration-200 ${
-                                        isSoldOut || isInactive
-                                            ? "border-[var(--color-border)] bg-[var(--color-background)]/30 opacity-60"
-                                            : "border-[var(--color-border)] bg-[var(--color-background)]/50 hover:border-[var(--color-primary)]/30"
-                                    }`}
+                                    className={`rounded-[var(--radius-lg)] border p-4 transition-all duration-200 ${isSoldOut || isInactive
+                                        ? "border-[var(--color-border)] bg-[var(--color-background)]/30 opacity-60"
+                                        : "border-[var(--color-border)] bg-[var(--color-background)]/50 hover:border-[var(--color-primary)]/30"
+                                        }`}
                                 >
                                     <div className="mb-3 flex items-start justify-between">
                                         <div className="flex-1">
@@ -104,11 +103,10 @@ export function TicketTypeManagement({
                                                     {ticketType.name}
                                                 </h3>
                                                 <span
-                                                    className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-                                                        ticketType.active
-                                                            ? "bg-emerald-500/20 text-emerald-400"
-                                                            : "bg-red-500/20 text-red-400"
-                                                    }`}
+                                                    className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${ticketType.active
+                                                        ? "bg-emerald-500/20 text-emerald-400"
+                                                        : "bg-red-500/20 text-red-400"
+                                                        }`}
                                                 >
                                                     {ticketType.active ? "Active" : "Inactive"}
                                                 </span>
@@ -147,13 +145,12 @@ export function TicketTypeManagement({
                                         <div className="flex justify-between text-[var(--color-secondary)]">
                                             <span>Remaining:</span>
                                             <span
-                                                className={`font-medium ${
-                                                    remaining <= 10
+                                                className={`font-medium ${remaining === 0
+                                                    ? "text-red-400"
+                                                    : remaining <= 10
                                                         ? "text-yellow-400"
-                                                        : remaining === 0
-                                                          ? "text-red-400"
-                                                          : "text-green-400"
-                                                }`}
+                                                        : "text-green-400"
+                                                    }`}
                                             >
                                                 {remaining}
                                             </span>
@@ -175,7 +172,7 @@ export function TicketTypeManagement({
                                             size="sm"
                                             onClick={() => setDeletingTicketTypeId(ticketType.id)}
                                             className="gap-2 text-red-400 hover:bg-red-500/10 hover:text-red-300"
-                                            disabled={hasSoldTickets}
+                                            disabled={ticketType.soldCount > 0}
                                         >
                                             <Trash2 className="h-4 w-4" />
                                             Delete
@@ -226,7 +223,6 @@ export function TicketTypeManagement({
                 variant="destructive"
                 isLoading={isPending}
                 icon={<AlertTriangle className="h-5 w-5" />}
-                disabled={hasSoldTickets}
             />
         </>
     );

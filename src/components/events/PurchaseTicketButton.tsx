@@ -23,9 +23,11 @@ export default function PurchaseTicketButton({
   const [error, setError] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAttendee, setIsAttendee] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
+    setIsMounted(true);
     const updateAuthState = () => {
       setIsAuthenticated(isClientAuthenticated());
       setIsAttendee(isClientAttendee());
@@ -73,6 +75,12 @@ export default function PurchaseTicketButton({
       setIsLoading(false);
     }
   };
+
+  if (!isMounted) {
+    return (
+      <div className="mt-4 h-10 w-full animate-pulse rounded-[var(--radius-md)] bg-[var(--color-surface)]/50" />
+    );
+  }
 
   // Don't show button if not authenticated or not an attendee
   if (!isAuthenticated) {

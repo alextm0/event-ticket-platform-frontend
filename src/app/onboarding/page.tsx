@@ -1,5 +1,6 @@
 import { OnboardingForm } from "@/components/onboarding/OnboardingForm";
-import { fetchAuthContext, redirectToRoleDashboard } from "@/lib/auth-flow";
+import { fetchAuthContext, redirectToRoleDashboard } from "@/lib/auth-guards";
+
 
 export default async function OnboardingPage() {
   const { user, profile, needsOnboarding } = await fetchAuthContext({ allowGrant: false });

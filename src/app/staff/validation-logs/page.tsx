@@ -4,19 +4,23 @@ import { getCurrentUserId, getStaffAssignedEvents } from "@/lib/backend-client";
 import { ValidationLogsClient } from "./ValidationLogsClient";
 import { Shield } from "lucide-react";
 
+import { redirect } from "next/navigation";
+
 export default async function ValidationLogsPage() {
   await requireRole("staff", { allowGrant: false });
 
   const userId = await getCurrentUserId();
   if (!userId) {
-    return null;
+    redirect("/sign-in");
   }
 
-  let assignedEvents = [];
+  let assignedEvents: Array<{ eventId: string; eventName: string }> = [];
   try {
-    assignedEvents = await getStaffAssignedEvents(userId);
+    const events = await getStaffAssignedEvents(userId);
+    assignedEvents = events || []; // Ensure it's always an array
   } catch (error) {
     console.error("Failed to fetch assigned events for staff:", error);
+    // assignedEvents remains as empty array
   }
 
   return (

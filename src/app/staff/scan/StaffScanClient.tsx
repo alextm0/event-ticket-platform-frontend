@@ -3,12 +3,12 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { Scanner, IDetectedBarcode } from "@yudiel/react-qr-scanner";
-import { validateTicket } from "@/lib/validate-ticket";
+import { validateTicket } from "@/lib/validation/client";
 import {
     isTicketValid,
     getValidationMessage,
     sanitizeValidationErrorMessage,
-} from "@/lib/ticket-validation-helpers";
+} from "@/lib/validation/helpers";
 import { Button } from "@/components/ui/button";
 import {
     Select,
@@ -32,10 +32,7 @@ import {
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 
-interface AssignedEvent {
-    eventId: string;
-    eventName: string;
-}
+import { AssignedEvent } from "@/types";
 
 interface StaffScanClientProps {
     initialEvents: AssignedEvent[];
@@ -50,11 +47,20 @@ interface ValidationLog {
     validatedAt: string;
 }
 
+interface ScanResultDetails {
+    attendeeName?: string;
+    ticketType?: string;
+    ticketId?: string;
+    purchaseDate?: string;
+    checkInTime?: string;
+}
+
 export function StaffScanClient({ initialEvents }: StaffScanClientProps) {
     const [eventId, setEventId] = useState<string>(initialEvents[0]?.eventId || "");
     const [scannedData, setScannedData] = useState<string | null>(null);
     const [validationMessage, setValidationMessage] = useState<string | null>(null);
     const [isValid, setIsValid] = useState<boolean | null>(null);
+    const [scanDetails, setScanDetails] = useState<ScanResultDetails | null>(null);
     const [isScanning, setIsScanning] = useState<boolean>(true);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [recentLogs, setRecentLogs] = useState<ValidationLog[]>([]);
@@ -120,6 +126,7 @@ export function StaffScanClient({ initialEvents }: StaffScanClientProps) {
                 setScannedData(result);
                 setValidationMessage("Validating...");
                 setIsValid(null);
+                setScanDetails(null);
 
                 try {
                     const data = await validateTicket(eventId, result, { code: result });
@@ -128,6 +135,62 @@ export function StaffScanClient({ initialEvents }: StaffScanClientProps) {
 
                     setValidationMessage(message);
                     setIsValid(valid);
+
+
+                    // Determine if we should show details
+                    // We show details for VALID tickets and CHECKED_IN (Duplicate) tickets.
+                    // We do NOT show details for generic INVALID tickets (e.g. not found).
+                    const isDuplicate = !valid && data.ticketStatus === "CHECKED_IN";
+
+                    if (valid || isDuplicate) {
+                        // Extract initial details
+                        let details: ScanResultDetails = {
+                            ticketId: data.ticketId || result,
+                            attendeeName: data.attendeeName || data.user?.fullName || data.user?.name || data.ownerName,
+                            ticketType: data.ticketType?.name || data.ticketTypeName || data.ticketType,
+                            purchaseDate: data.purchaseDate || data.createdAt,
+                        };
+
+                        // Check for invalid status reasons (e.g. checked in)
+                        if (isDuplicate) {
+                            details.checkInTime = data.checkedInAt;
+                        }
+
+                        // IF details are missing, try to fetch full ticket info
+                        if (!details.attendeeName && details.ticketId) {
+                            try {
+                                const ticketResponse = await fetch(`/api/tickets/${details.ticketId}`);
+                                if (ticketResponse.ok) {
+                                    const ticketData = await ticketResponse.json();
+                                    details = {
+                                        ...details,
+                                        attendeeName: ticketData.attendee_name || details.attendeeName,
+                                        ticketType: ticketData.ticket_type_name || details.ticketType,
+                                        purchaseDate: ticketData.purchase_date || details.purchaseDate,
+                                    };
+                                    // If still no name, check other fields
+                                    if (!details.attendeeName && ticketData.user_id) {
+                                        try {
+                                            const userRes = await fetch(`/api/users/${ticketData.user_id}`);
+                                            if (userRes.ok) {
+                                                const userData = await userRes.json();
+                                                details.attendeeName = userData.name || userData.fullName || "Unknown User";
+                                            }
+                                        } catch (err) {
+                                            console.error("Failed to fetch user details", err);
+                                        }
+                                    }
+                                }
+                            } catch (err) {
+                                console.error("Failed to fetch extended ticket details", err);
+                            }
+                        }
+                        console.log("Final Scan Details:", details);
+                        setScanDetails(details);
+                    } else {
+                        // For strictly invalid tickets, do not show details
+                        setScanDetails(null);
+                    }
 
                     // Refresh recent logs after validation
                     const response = await fetch(`/api/events/${eventId}/validation-logs`, {
@@ -142,13 +205,15 @@ export function StaffScanClient({ initialEvents }: StaffScanClientProps) {
                     const msg = sanitizeValidationErrorMessage(error);
                     setValidationMessage(msg);
                     setIsValid(false);
+                    setScanDetails(null);
                 } finally {
                     setTimeout(() => {
                         setIsScanning(true);
                         setScannedData(null);
                         setValidationMessage(null);
                         setIsValid(null);
-                    }, 3500);
+                        setScanDetails(null);
+                    }, 5000); // Increased timeout to read details
                 }
             }
         }
@@ -158,6 +223,7 @@ export function StaffScanClient({ initialEvents }: StaffScanClientProps) {
         console.error(error);
         setValidationMessage("Camera Error");
         setIsValid(false);
+        setScanDetails(null);
         setTimeout(() => {
             setIsScanning(true);
             setValidationMessage(null);
@@ -274,19 +340,74 @@ export function StaffScanClient({ initialEvents }: StaffScanClientProps) {
                         </div>
                     ) : (
                         <div className={cn(
-                            "absolute inset-0 z-10 flex flex-col items-center justify-center p-8 text-center transition-all duration-300",
-                            isValid === true ? "bg-emerald-500/90" : isValid === false ? "bg-red-500/90" : "bg-black/80"
+                            "absolute inset-0 z-10 flex flex-col items-center justify-center p-6 text-center transition-all duration-300",
+                            isValid === true ? "bg-emerald-950/95" : isValid === false ? "bg-red-950/95" : "bg-black/90"
                         )}>
-                            {isValid === true ? (
-                                <CheckCircle2 className="h-20 w-20 text-white mb-4 animate-in zoom-in-50 duration-300" />
-                            ) : isValid === false ? (
-                                <XCircle className="h-20 w-20 text-white mb-4 animate-in zoom-in-50 duration-300" />
-                            ) : (
-                                <Loader2 className="h-16 w-16 text-white mb-4 animate-spin" />
-                            )}
-                            <h2 className="text-2xl font-bold text-white uppercase tracking-tight">
+                            <div className={cn(
+                                "mb-6 rounded-full p-4 animate-in zoom-in-50 duration-300 shadow-xl",
+                                isValid === true ? "bg-emerald-500/20 text-emerald-400" : isValid === false ? "bg-red-500/20 text-red-400" : "bg-white/10 text-white"
+                            )}>
+                                {isValid === true ? (
+                                    <CheckCircle2 className="h-16 w-16" />
+                                ) : isValid === false ? (
+                                    <XCircle className="h-16 w-16" />
+                                ) : (
+                                    <Loader2 className="h-12 w-12 animate-spin" />
+                                )}
+                            </div>
+
+                            <h2 className={cn(
+                                "text-3xl font-bold uppercase tracking-tight mb-2",
+                                isValid === true ? "text-emerald-400" : isValid === false ? "text-red-400" : "text-white"
+                            )}>
                                 {validationMessage}
                             </h2>
+
+                            {scanDetails && (
+                                <div className="mt-4 w-full max-w-xs space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
+                                    <div className="bg-white/5 rounded-xl p-4 border border-white/10 backdrop-blur-sm">
+                                        {scanDetails.attendeeName && (
+                                            <div className="mb-3 pb-3 border-b border-white/5">
+                                                <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Attendee</p>
+                                                <p className="text-lg font-semibold text-white">{scanDetails.attendeeName}</p>
+                                            </div>
+                                        )}
+
+                                        <div className="grid grid-cols-2 gap-3">
+                                            {scanDetails.ticketType && (
+                                                <div className="text-left">
+                                                    <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Type</p>
+                                                    <div className="inline-flex items-center rounded-full bg-white/10 px-2 py-0.5 text-xs font-medium text-white border border-white/10">
+                                                        {scanDetails.ticketType}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {scanDetails.purchaseDate && (
+                                                <div className="text-left">
+                                                    <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Purchased</p>
+                                                    <p className="text-sm text-slate-300">{formatDistanceToNow(new Date(scanDetails.purchaseDate), { addSuffix: true })}</p>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {scanDetails.checkInTime && (
+                                            <div className="mt-3 pt-3 border-t border-white/5 bg-red-500/10 -mx-4 -mb-4 p-3 rounded-b-xl">
+                                                <p className="text-xs text-red-300 uppercase tracking-wider mb-1">Previously Checked In</p>
+                                                <p className="text-sm font-medium text-red-200">
+                                                    {new Date(scanDetails.checkInTime).toLocaleTimeString()}
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {scanDetails.ticketId && (
+                                        <p className="text-xs text-slate-500 font-mono">
+                                            ID: {scanDetails.ticketId}
+                                        </p>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>

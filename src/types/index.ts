@@ -55,3 +55,8 @@ export interface TicketQrCode {
   updatedAt?: string;
   expiresAt?: string;
 }
+
+export interface AssignedEvent {
+  eventId: string;
+  eventName: string;
+}

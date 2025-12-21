@@ -49,7 +49,14 @@ export default function SignInPage() {
           localStorage.setItem('authToken', data.token || 'mock-token');
           localStorage.setItem('userId', data.userId || email.split('@')[0] || 'user');
           localStorage.setItem('userEmail', data.email || email);
-          localStorage.setItem('userRole', data.role?.toLowerCase() || 'attendee');
+
+          // Role is optional in the system. Only set it if explicitly provided.
+          // This matches server-side behavior where role can be undefined.
+          if (data.role) {
+            localStorage.setItem('userRole', data.role.toLowerCase());
+          } else {
+            localStorage.removeItem('userRole');
+          }
           window.dispatchEvent(new Event(SESSION_UPDATED_EVENT));
         }
 
@@ -129,15 +136,9 @@ export default function SignInPage() {
         </div>
 
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="password" className="text-slate-300">Password</Label>
-            <a
-              href="#"
-              className="text-xs text-slate-400 hover:text-emerald-400 transition-colors"
-            >
-              Forgot password?
-            </a>
-          </div>
+          <Label htmlFor="password" className="text-slate-300">Password</Label>
+
+
           <Input
             id="password"
             type="password"
@@ -155,7 +156,7 @@ export default function SignInPage() {
         >
           {loading ? "Signing in..." : "Sign in"}
         </Button>
-      </form>
+      </form >
 
       <div className="text-center text-sm text-slate-500">
         Don&apos;t have an account?{" "}
@@ -163,6 +164,6 @@ export default function SignInPage() {
           Sign up
         </Link>
       </div>
-    </div>
+    </div >
   );
 }

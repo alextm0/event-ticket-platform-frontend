@@ -1,7 +1,9 @@
 import { PageHeader } from "@/components/ui/page-header";
-import { EventCard } from "@/components/events/EventCard";
 import { getPublishedEvents } from "@/lib/backend-client";
 import { PublishedEvent } from "@/types";
+import BrowseEventsClient from "./BrowseEventsClient";
+
+export const dynamic = "force-dynamic"; // Ensure fresh data
 
 export default async function BrowseEventsPage() {
   // Public page, no role requirement
@@ -21,23 +23,15 @@ export default async function BrowseEventsPage() {
         <PageHeader
           title="Browse Events"
           description="Discover and book tickets for upcoming events."
-          className="items-center text-center md:flex-col md:items-center md:justify-center"
+          className="items-center text-center md:flex-col md:items-center md:justify-center mb-8"
         />
 
         {error ? (
           <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-6 text-center text-red-200 backdrop-blur-sm">
             <p>{error}</p>
           </div>
-        ) : events.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-[var(--color-secondary)]">
-            <p className="text-lg">No published events found.</p>
-          </div>
         ) : (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {events.map((event) => (
-              <EventCard key={event.id} event={event} />
-            ))}
-          </div>
+          <BrowseEventsClient initialEvents={events} />
         )}
       </div>
     </div>

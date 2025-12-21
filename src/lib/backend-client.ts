@@ -112,6 +112,37 @@ export async function createBackendUser(
   throw new Error("Failed to create backend user due to repeated network errors.");
 }
 
+export interface UserProfile {
+  id: string;
+  email: string;
+  name?: string;
+  fullName?: string;
+  role?: string;
+}
+
+export async function getUserById(userId: string): Promise<UserProfile> {
+  const token = await getAuthToken();
+  if (!token) throw new Error("No authentication token available.");
+
+  const response = await fetch(`${serverRuntimeConfig.backendApiUrl}/api/v1/users/${userId}`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    // Try fallback to public profile if admin path fails?
+    // Or maybe throwing is fine.
+    const body = await response.text();
+    throw new Error(`Failed to fetch user (${response.status}): ${body}`);
+  }
+
+  return response.json();
+}
+
 export async function getEvents(
   options: {
     timeoutMs?: number;
@@ -515,7 +546,10 @@ function normalizeTicketResponse(raw: any): Ticket {
     event_description: raw.event_description ?? raw.eventDescription ?? raw.event?.description,
     ticket_type_name: raw.ticket_type_name ?? raw.ticketTypeName ?? raw.ticket_type ?? raw.ticketType,
     qr_code_id: raw.qr_code_id ?? raw.qrCodeId ?? raw.qr_code ?? raw.qrCode,
-    purchase_date: toIsoString(raw.purchase_date ?? raw.purchaseDate),
+    purchase_date: toIsoString(raw.purchase_date ?? raw.purchaseDate ?? raw.created_at ?? raw.createdAt),
+    attendee_name: raw.attendee_name ?? raw.attendeeName ?? raw.user?.fullName ?? raw.user?.name ?? raw.ownerName,
+    user_email: raw.user_email ?? raw.userEmail ?? raw.user?.email,
+    user_id: raw.userId ?? raw.user_id ?? raw.ownerId ?? raw.owner_id ?? raw.user?.id,
   };
 }
 
@@ -552,6 +586,38 @@ export async function getUserTickets(): Promise<Ticket[]> {
   }
 
   return data.map(normalizeTicketResponse);
+}
+
+export async function getTicketById(ticketId: string): Promise<Ticket> {
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    throw new Error("No user ID available for ticket lookup.");
+  }
+
+  const token = await getAuthToken();
+  const headers: Record<string, string> = {
+    "X-User-Id": userId,
+    "Content-Type": "application/json",
+  };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  // Generic endpoint - structure depends on backend. 
+  // Assuming /api/v1/tickets/{id} exists for fetching single ticket details.
+  const response = await fetch(`${serverRuntimeConfig.backendApiUrl}/api/v1/tickets/${ticketId}`, {
+    method: "GET",
+    headers,
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Failed to fetch ticket (${response.status} ${response.statusText}): ${body}`);
+  }
+
+  const data = await response.json();
+  return normalizeTicketResponse(data);
 }
 
 export async function buyTicket(eventId: string, ticketTypeId: string, quantity: number = 1): Promise<{ orderId: string }> {
@@ -784,7 +850,8 @@ export async function getStaffAssignedEvents(staffId: string): Promise<StaffAssi
   if (!response.ok) {
     const body = await response.text();
     if (response.status === 404) {
-      throw new Error("Staff member not found");
+      // Staff member not found or has no assigned events - return empty array
+      return [];
     }
     if (response.status === 403) {
       throw new Error("User is not a staff member");
@@ -794,12 +861,19 @@ export async function getStaffAssignedEvents(staffId: string): Promise<StaffAssi
     );
   }
 
-  const data: StaffAssignedEventsResponse = await response.json();
+  const data: StaffAssignedEventsResponse | null = await response.json();
 
+  // Handle null or undefined response
+  if (!data) {
+    return [];
+  }
+
+  // Handle missing or non-array events field
   if (!data.events || !Array.isArray(data.events)) {
     return [];
   }
 
+  // Map and return events
   return data.events.map((event) => ({
     eventId: event.eventId,
     eventName: event.eventName,

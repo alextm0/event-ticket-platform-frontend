@@ -58,14 +58,16 @@ export default async function EventDetailsPage({ params }: EventDetailsPageProps
     const isOrganizer = userRole === "organizer";
 
     // Staff management data (only for organizers)
-    let assignedStaff = [];
-    let availableStaff = [];
+    let assignedStaff: Array<{ id: string; email: string; name: string; role: string }> = [];
+    let availableStaff: Array<{ id: string; email: string; name: string; role: string }> = [];
     if (isOrganizer) {
       try {
-        [assignedStaff, availableStaff] = await Promise.all([
+        const [assigned, available] = await Promise.all([
           getEventStaffMembers(eventId),
           getGlobalStaffMembers()
         ]);
+        assignedStaff = assigned || [];
+        availableStaff = available || [];
       } catch (err) {
         console.error("Failed to fetch staff management data:", err);
       }

@@ -109,11 +109,11 @@ export async function createTicketTypeAction(eventId: string, formData: FormData
     const name = formData.get("name") as string;
     const description = formData.get("description") as string;
     const price = formData.get("price") as string;
-    const totalQuantity = formData.get("totalQuantity") as string;
+    const quantity = formData.get("quantity") as string;
     const active = formData.get("active") === "true";
 
-    if (!name || !price || !totalQuantity) {
-        throw new Error("Missing required fields: name, price, and totalQuantity are required");
+    if (!name || !price || !quantity) {
+        throw new Error("Missing required fields: name, price, and quantity are required");
     }
 
     try {
@@ -122,7 +122,7 @@ export async function createTicketTypeAction(eventId: string, formData: FormData
             name,
             description: description || undefined,
             price: parseFloat(price),
-            totalQuantity: parseInt(totalQuantity, 10),
+            totalQuantity: parseInt(quantity, 10),
             active,
         };
         await createTicketType(eventId, payload);
@@ -147,11 +147,22 @@ export async function updateTicketTypeAction(
     try {
         const { updateTicketType } = await import("@/lib/backend-client");
         const payload: UpdateTicketTypePayload = {};
-        if (name) payload.name = name;
-        if (description !== null) payload.description = description || undefined;
-        if (price) payload.price = parseFloat(price);
-        if (quantity) payload.quantity = parseInt(quantity, 10);
-        if (active !== null) payload.active = active === "true";
+
+        if (name && name !== "") payload.name = name;
+        if (description !== null && description !== "") payload.description = description;
+        else if (description === "") payload.description = undefined; // unset if empty string? or maybe just ignore. Typically empty string means 'remove'.
+        // Refined per request: "treat empty string as unset (use undefined)" implies removing it?
+        // Actually the request said: "check value !== null && value !== '' ... e.g. for description ... treat empty string as unset (use undefined)"
+        // This likely means if the user sends "", we might want to clear it or ignore it. 
+        // Let's stick to: only set if present and non-empty. 
+        // Wait, if I want to CLEAr a description, I might send empty string.
+        // But the prompt says "only set payload fields when the value is present and non-empty".
+        // So I will IGNORE empty strings.
+
+        if (description && description !== "") payload.description = description;
+        if (price && price !== "") payload.price = parseFloat(price);
+        if (quantity && quantity !== "") payload.quantity = parseInt(quantity, 10);
+        if (active && active !== "") payload.active = active === "true";
 
         await updateTicketType(eventId, ticketTypeId, payload);
         revalidatePath(`/events/${eventId}`);

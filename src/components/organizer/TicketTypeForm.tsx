@@ -86,7 +86,7 @@ export function TicketTypeForm({
                 formDataObj.append("description", formData.description.trim());
             }
             formDataObj.append("price", price.toString());
-            formDataObj.append("totalQuantity", quantity.toString());
+            formDataObj.append("quantity", quantity.toString());
             formDataObj.append("active", formData.active.toString());
 
             if (isEditMode && ticketType) {
@@ -211,14 +211,14 @@ export function TicketTypeForm({
                             <Input
                                 id="totalQuantity"
                                 type="number"
-                                min="1"
+                                min={isEditMode && ticketType?.soldCount ? ticketType.soldCount : 1}
                                 value={formData.totalQuantity}
                                 onChange={(e) =>
                                     setFormData({ ...formData, totalQuantity: e.target.value })
                                 }
                                 placeholder="100"
                                 required
-                                disabled={isLoading || (isEditMode && !!ticketType?.soldCount)}
+                                disabled={isLoading}
                                 className="bg-[var(--color-background)] border-[var(--color-border)] focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]/20 h-11"
                             />
                             {isEditMode && ticketType && ticketType.soldCount > 0 && (
