@@ -135,6 +135,16 @@ export default function EventForm({ initialData }: { initialData?: Event }) {
     // Suggestions state
     const [suggestions, setSuggestions] = useState<any[]>([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
+    const blurTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+    // Clean up timeout on unmount
+    React.useEffect(() => {
+        return () => {
+            if (blurTimeoutRef.current) {
+                clearTimeout(blurTimeoutRef.current);
+            }
+        };
+    }, []);
 
     // Debounce and Validate Location
     React.useEffect(() => {
@@ -326,11 +336,13 @@ export default function EventForm({ initialData }: { initialData?: Event }) {
                                 if (locationValidity !== null) setLocationValidity(null);
                             }}
                             onFocus={() => {
+                                if (blurTimeoutRef.current) clearTimeout(blurTimeoutRef.current);
                                 if (suggestions.length > 0) setShowSuggestions(true);
                             }}
                             onBlur={() => {
                                 // Delay hiding to allow click event to register
-                                setTimeout(() => setShowSuggestions(false), 200);
+                                if (blurTimeoutRef.current) clearTimeout(blurTimeoutRef.current);
+                                blurTimeoutRef.current = setTimeout(() => setShowSuggestions(false), 200);
                             }}
                             autoComplete="off"
                             className={cn(
