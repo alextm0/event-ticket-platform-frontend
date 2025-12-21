@@ -185,7 +185,7 @@ export function EventDetailsView({
                                             </div>
                                             <div>
                                                 <p className="text-white font-semibold text-lg leading-tight">{event.location}</p>
-                                                <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`} target="_blank" rel="noreferrer" className="text-emerald-400 hover:text-emerald-300 text-sm mt-1 inline-block">
+                                                <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`} target="_blank" rel="noreferrer noopener" className="text-emerald-400 hover:text-emerald-300 text-sm mt-1 inline-block">
                                                     Get Directions &rarr;
                                                 </a>
                                             </div>

@@ -84,8 +84,10 @@ export default function PurchaseTicketButton({
       router.push(`/my-tickets?orderId=${data.orderId}`);
     } catch (err: any) {
       console.error('Purchase failed', err);
+      // We set error internally but ALSO re-throw so the modal knows it failed
       setError(err.message || 'An unexpected error occurred. Please try again.');
       setIsLoading(false);
+      throw err;
     }
   };
 

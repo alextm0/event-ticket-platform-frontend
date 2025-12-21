@@ -107,7 +107,7 @@ export async function fetchAuthContext(options: FetchAuthContextOptions = {}) {
 /**
  * Resolve the dashboard destination for a given role
  */
-export function resolveRoleDestination(role: AppRole | null | undefined) {
+export function resolveRoleDestination(role: AppRole | null | undefined): string | null {
   if (!role) {
     return null;
   }
@@ -121,5 +121,7 @@ export function redirectToRoleDashboard(role: AppRole | null | undefined) {
   const destination = resolveRoleDestination(role);
   if (destination) {
     redirect(destination);
+  } else {
+    redirect("/");
   }
 }

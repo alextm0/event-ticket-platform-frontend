@@ -170,6 +170,12 @@ export default function EventForm({ initialData }: { initialData?: Event }) {
                     }
                 }
             );
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Location search failed (${response.status}): ${errorText}`);
+            }
+
             const data = await response.json();
 
             if (data && data.length > 0) {

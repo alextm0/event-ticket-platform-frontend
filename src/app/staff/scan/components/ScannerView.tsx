@@ -136,7 +136,7 @@ export function ScannerView({
                                     <div className="mt-3 pt-3 border-t border-white/5 bg-yellow-500/10 -mx-4 -mb-4 p-3 rounded-b-xl">
                                         <p className="text-xs text-yellow-300 uppercase tracking-wider mb-1">Checked In At</p>
                                         <p className="text-sm font-medium text-yellow-200">
-                                            {new Date(details.checkInTime).toLocaleTimeString()}
+                                            {formatSafeDate(details.checkInTime, (d) => d.toLocaleTimeString())}
                                         </p>
                                     </div>
                                 )}
