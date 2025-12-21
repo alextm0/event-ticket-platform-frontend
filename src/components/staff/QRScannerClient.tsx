@@ -25,7 +25,9 @@ export default function QRScannerClient({ eventId }: Props) {
   const [qrData, setQrData] = useState<string>("");
   const [popup, setPopup] = useState<ValidationPopup>({ show: false, isValid: false, message: "" });
   const lastScannedRef = useRef<string>("");
+  const lastScannedTimeRef = useRef<number>(0);
   const popupRef = useRef<ValidationPopup>(popup);
+  const COOLDOWN_MS = 2000; // Allow re-scanning same code after 2 seconds
 
   const handleTicketValidation = useCallback(
     async (data: string) => {
@@ -47,7 +49,7 @@ export default function QRScannerClient({ eventId }: Props) {
         
         setPopup({ show: true, isValid, message });
       } catch (err) {
-        console.error("Validation error:", err);
+        // Silently handle error and show user-friendly message
         const errorMessage = sanitizeValidationErrorMessage(err);
         setPopup({ show: true, isValid: false, message: errorMessage });
       }
@@ -99,8 +101,11 @@ export default function QRScannerClient({ eventId }: Props) {
 
             const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
             const code = jsQR(imageData.data, canvas.width, canvas.height);
-            if (code && code.data !== lastScannedRef.current) {
+            const now = Date.now();
+            // Allow scanning if it's a different code, or if it's been more than COOLDOWN_MS since last scan
+            if (code && (code.data !== lastScannedRef.current || (now - lastScannedTimeRef.current) > COOLDOWN_MS)) {
               lastScannedRef.current = code.data;
+              lastScannedTimeRef.current = now;
               setQrData(code.data);
               // handleTicketValidation will check if eventId is present and prevent validation
               handleTicketValidation(code.data);
@@ -164,7 +169,11 @@ export default function QRScannerClient({ eventId }: Props) {
           <button
             onClick={() => {
               setPopup({ show: false, isValid: false, message: "" });
-              lastScannedRef.current = "";
+              // Reset after a short delay to allow immediate re-scanning
+              setTimeout(() => {
+                lastScannedRef.current = "";
+                lastScannedTimeRef.current = 0;
+              }, 500);
             }}
             style={{
               padding: "10px 20px",

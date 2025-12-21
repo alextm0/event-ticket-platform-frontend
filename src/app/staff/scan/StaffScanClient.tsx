@@ -25,9 +25,12 @@ import {
     Loader2,
     Calendar,
     Maximize2,
-    Minimize2
+    Minimize2,
+    ArrowRight,
+    ClipboardList
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatDistanceToNow } from "date-fns";
 
 interface AssignedEvent {
     eventId: string;
@@ -38,6 +41,15 @@ interface StaffScanClientProps {
     initialEvents: AssignedEvent[];
 }
 
+interface ValidationLog {
+    id: string;
+    eventId: string;
+    ticketId: string;
+    validationStatus: string;
+    ticketStatus: string;
+    validatedAt: string;
+}
+
 export function StaffScanClient({ initialEvents }: StaffScanClientProps) {
     const [eventId, setEventId] = useState<string>(initialEvents[0]?.eventId || "");
     const [scannedData, setScannedData] = useState<string | null>(null);
@@ -45,6 +57,8 @@ export function StaffScanClient({ initialEvents }: StaffScanClientProps) {
     const [isValid, setIsValid] = useState<boolean | null>(null);
     const [isScanning, setIsScanning] = useState<boolean>(true);
     const [isFullscreen, setIsFullscreen] = useState(false);
+    const [recentLogs, setRecentLogs] = useState<ValidationLog[]>([]);
+    const [isLoadingLogs, setIsLoadingLogs] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
 
     const toggleFullscreen = () => {
@@ -65,12 +79,43 @@ export function StaffScanClient({ initialEvents }: StaffScanClientProps) {
         return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
     }, []);
 
+    // Fetch recent logs when eventId changes
+    useEffect(() => {
+        const fetchRecentLogs = async () => {
+            if (!eventId) return;
+
+            setIsLoadingLogs(true);
+            try {
+                const response = await fetch(`/api/events/${eventId}/validation-logs`, {
+                    cache: "no-store"
+                });
+
+                if (response.ok) {
+                    const logs = await response.json();
+                    setRecentLogs(logs.slice(0, 5)); // Get only the 5 most recent
+                }
+            } catch (error) {
+                console.error("Failed to fetch recent logs:", error);
+            } finally {
+                setIsLoadingLogs(false);
+            }
+        };
+
+        fetchRecentLogs();
+    }, [eventId]);
+
+    const lastScannedTimeRef = useRef<number>(0);
+    const COOLDOWN_MS = 2000; // Allow re-scanning same code after 2 seconds
+
     const handleScan = async (detectedCodes: IDetectedBarcode[]) => {
         if (detectedCodes.length > 0) {
             const result = detectedCodes[0].rawValue;
-            if (result && result !== scannedData) {
+            const now = Date.now();
+            // Allow scanning if it's a different code, or if it's been more than COOLDOWN_MS since last scan
+            if (result && (result !== scannedData || (now - lastScannedTimeRef.current) > COOLDOWN_MS)) {
                 if (!eventId) return;
 
+                lastScannedTimeRef.current = now;
                 setIsScanning(false);
                 setScannedData(result);
                 setValidationMessage("Validating...");
@@ -83,8 +128,17 @@ export function StaffScanClient({ initialEvents }: StaffScanClientProps) {
 
                     setValidationMessage(message);
                     setIsValid(valid);
+
+                    // Refresh recent logs after validation
+                    const response = await fetch(`/api/events/${eventId}/validation-logs`, {
+                        cache: "no-store"
+                    });
+                    if (response.ok) {
+                        const logs = await response.json();
+                        setRecentLogs(logs.slice(0, 5));
+                    }
                 } catch (error) {
-                    console.error("Error validating ticket:", error);
+                    // Handle error silently and show user-friendly message
                     const msg = sanitizeValidationErrorMessage(error);
                     setValidationMessage(msg);
                     setIsValid(false);
@@ -236,6 +290,84 @@ export function StaffScanClient({ initialEvents }: StaffScanClientProps) {
                         </div>
                     )}
                 </div>
+
+                {/* Recent Validation Logs */}
+                {!isFullscreen && (
+                    <div className="rounded-2xl border border-white/5 bg-white/5 backdrop-blur-xl p-6 animate-in fade-in duration-700">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-2">
+                                <ClipboardList className="h-5 w-5 text-emerald-400" />
+                                <h3 className="text-lg font-semibold text-white">Recent Validations</h3>
+                            </div>
+                            <Link
+                                href="/staff/validation-logs"
+                                className="text-sm text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1"
+                            >
+                                View All
+                                <ArrowRight className="h-3 w-3" />
+                            </Link>
+                        </div>
+
+                        {isLoadingLogs ? (
+                            <div className="flex items-center justify-center py-8">
+                                <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+                            </div>
+                        ) : recentLogs.length === 0 ? (
+                            <p className="text-sm text-slate-400 text-center py-8">
+                                No validations yet. Start scanning tickets!
+                            </p>
+                        ) : (
+                            <div className="space-y-2">
+                                {recentLogs.map((log) => {
+                                    const isValid = log.validationStatus === "VALID";
+                                    const isDuplicate = !isValid && log.ticketStatus === "CHECKED_IN";
+
+                                    return (
+                                        <div
+                                            key={log.id}
+                                            className={cn(
+                                                "flex items-center justify-between p-3 rounded-lg border transition-colors",
+                                                isValid
+                                                    ? "border-emerald-500/20 bg-emerald-500/5"
+                                                    : isDuplicate
+                                                        ? "border-yellow-500/20 bg-yellow-500/5"
+                                                        : "border-red-500/20 bg-red-500/5"
+                                            )}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className={cn(
+                                                    "flex h-8 w-8 items-center justify-center rounded-lg",
+                                                    isValid
+                                                        ? "bg-emerald-500/20 text-emerald-400"
+                                                        : isDuplicate
+                                                            ? "bg-yellow-500/20 text-yellow-400"
+                                                            : "bg-red-500/20 text-red-400"
+                                                )}>
+                                                    {isValid ? (
+                                                        <CheckCircle2 className="h-4 w-4" />
+                                                    ) : (
+                                                        <XCircle className="h-4 w-4" />
+                                                    )}
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-medium text-white">
+                                                        {isValid ? "Valid" : isDuplicate ? "Duplicate" : "Invalid"}
+                                                    </p>
+                                                    <p className="text-xs text-slate-400 font-mono">
+                                                        {log.ticketId?.slice(0, 8) || "Unknown"}...
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <span className="text-xs text-slate-400">
+                                                {formatDistanceToNow(new Date(log.validatedAt), { addSuffix: true })}
+                                            </span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {/* Compact Footer */}
                 {!isFullscreen && (

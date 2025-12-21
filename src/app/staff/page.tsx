@@ -37,19 +37,19 @@ export default async function StaffPage() {
           </Button>
         </div>
 
-        <div className="group relative overflow-hidden rounded-2xl border border-white/5 bg-white/5 p-8 transition-all hover:border-emerald-500/30 hover:bg-white/[0.08] animate-in fade-in slide-in-from-bottom-6 duration-700 delay-200 opacity-60 pointer-events-none">
+        <div className="group relative overflow-hidden rounded-2xl border border-white/5 bg-white/5 p-8 transition-all hover:border-emerald-500/30 hover:bg-white/[0.08] animate-in fade-in slide-in-from-bottom-6 duration-700 delay-200">
           <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-400 ring-1 ring-emerald-500/30">
             <ClipboardList className="h-6 w-6" />
           </div>
-          <div className="flex items-center gap-2 mb-2">
-            <h3 className="text-xl font-bold text-white">Validation Logs</h3>
-            <span className="text-[10px] uppercase tracking-wider bg-white/10 px-1.5 py-0.5 rounded text-slate-400">Coming Soon</span>
-          </div>
+          <h3 className="text-xl font-bold text-white mb-2">Validation Logs</h3>
           <p className="text-slate-400 text-sm leading-relaxed mb-8">
             Review recent scan attempts, identify blocked tickets, and monitor entry throughput.
           </p>
-          <Button variant="outline" className="w-full border-white/10 text-slate-500 cursor-not-allowed">
-            View History
+          <Button className="w-full bg-emerald-600 hover:bg-emerald-500 text-white gap-2 group/btn" asChild>
+            <Link href="/staff/validation-logs">
+              View History
+              <ArrowRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
+            </Link>
           </Button>
         </div>
       </div>

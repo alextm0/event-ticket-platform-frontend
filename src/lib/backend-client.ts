@@ -362,6 +362,137 @@ export async function getEventTicketTypes(eventId: string): Promise<EventTicketT
   }
 }
 
+export interface CreateTicketTypePayload {
+  name: string;
+  description?: string;
+  price: number;
+  totalQuantity: number;
+  active?: boolean;
+}
+
+export async function createTicketType(
+  eventId: string,
+  payload: CreateTicketTypePayload,
+): Promise<EventTicketType> {
+  const token = await getAuthToken();
+  if (!token) {
+    throw new Error("No authentication token available.");
+  }
+
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    throw new Error("No user ID available.");
+  }
+
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+    "X-User-Id": userId,
+  };
+
+  const response = await fetch(
+    `${serverRuntimeConfig.backendApiUrl}/api/v1/events/${eventId}/ticket-types`,
+    {
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload),
+      cache: "no-store",
+    },
+  );
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(
+      `Failed to create ticket type (${response.status} ${response.statusText}): ${body}`,
+    );
+  }
+
+  return response.json();
+}
+
+export interface UpdateTicketTypePayload {
+  name?: string;
+  description?: string;
+  price?: number;
+  quantity?: number;
+  active?: boolean;
+}
+
+export async function updateTicketType(
+  eventId: string,
+  ticketTypeId: string,
+  payload: UpdateTicketTypePayload,
+): Promise<EventTicketType> {
+  const token = await getAuthToken();
+  if (!token) {
+    throw new Error("No authentication token available.");
+  }
+
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    throw new Error("No user ID available.");
+  }
+
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+    "X-User-Id": userId,
+  };
+
+  const response = await fetch(
+    `${serverRuntimeConfig.backendApiUrl}/api/v1/events/${eventId}/ticket-types/${ticketTypeId}`,
+    {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify(payload),
+      cache: "no-store",
+    },
+  );
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(
+      `Failed to update ticket type (${response.status} ${response.statusText}): ${body}`,
+    );
+  }
+
+  return response.json();
+}
+
+export async function deleteTicketType(eventId: string, ticketTypeId: string): Promise<void> {
+  const token = await getAuthToken();
+  if (!token) {
+    throw new Error("No authentication token available.");
+  }
+
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    throw new Error("No user ID available.");
+  }
+
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+    "X-User-Id": userId,
+  };
+
+  const response = await fetch(
+    `${serverRuntimeConfig.backendApiUrl}/api/v1/events/${eventId}/ticket-types/${ticketTypeId}`,
+    {
+      method: "DELETE",
+      headers,
+      cache: "no-store",
+    },
+  );
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(
+      `Failed to delete ticket type (${response.status} ${response.statusText}): ${body}`,
+    );
+  }
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function normalizeTicketResponse(raw: any): Ticket {
   const toIsoString = (value: string | null | undefined) =>
@@ -779,4 +910,52 @@ export async function removeStaffFromEvent(eventId: string, staffId: string): Pr
     const body = await response.text();
     throw new Error(`Failed to remove staff (${response.status} ${response.statusText}): ${body}`);
   }
+}
+
+export interface TicketValidationLog {
+  id: string;
+  eventId: string;
+  eventTitle: string;
+  ticketId: string;
+  qrCodeId: string;
+  ticketStatus: string;
+  validationStatus: string;
+  validationMethod: string;
+  validatedAt: string;
+}
+
+export async function getValidationLogs(eventId: string): Promise<TicketValidationLog[]> {
+  const token = await getAuthToken();
+  if (!token) {
+    throw new Error("No authentication token available.");
+  }
+
+  const userId = await getCurrentUserId();
+  if (!userId) {
+    throw new Error("No user ID available.");
+  }
+
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+    "X-User-Id": userId,
+  };
+
+  const response = await fetch(
+    `${serverRuntimeConfig.backendApiUrl}/api/v1/events/${eventId}/ticket-validations`,
+    {
+      method: "GET",
+      headers,
+      cache: "no-store",
+    },
+  );
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(
+      `Failed to fetch validation logs (${response.status} ${response.statusText}): ${body}`,
+    );
+  }
+
+  return response.json();
 }

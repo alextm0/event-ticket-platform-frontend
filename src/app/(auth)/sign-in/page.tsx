@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import type { AppRole } from "@/lib/user-profile";
 import { SESSION_UPDATED_EVENT } from "@/lib/session-events";
 
 import { Button } from "@/components/ui/button";
@@ -18,19 +17,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-const ROLES: { value: AppRole; label: string }[] = [
-  { value: "admin", label: "Admin" },
-  { value: "organizer", label: "Organizer" },
-  { value: "staff", label: "Staff" },
-  { value: "attendee", label: "Attendee" },
-];
-
 export default function SignInPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<AppRole>("attendee");
   const [error, setError] = useState("");
   const [errorDetails, setErrorDetails] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -47,7 +38,7 @@ export default function SignInPage() {
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, role }),
+        body: JSON.stringify({ email, password }),
       });
 
       if (response.ok) {
@@ -58,7 +49,7 @@ export default function SignInPage() {
           localStorage.setItem('authToken', data.token || 'mock-token');
           localStorage.setItem('userId', data.userId || email.split('@')[0] || 'user');
           localStorage.setItem('userEmail', data.email || email);
-          localStorage.setItem('userRole', data.role?.toLowerCase() || role);
+          localStorage.setItem('userRole', data.role?.toLowerCase() || 'attendee');
           window.dispatchEvent(new Event(SESSION_UPDATED_EVENT));
         }
 
@@ -83,15 +74,7 @@ export default function SignInPage() {
           }
 
           if (response.status === 401) {
-            if (title === "Invalid credentials") {
-              message = backendMessage ?? "Invalid email or password";
-            } else if (title === "Invalid role") {
-              message =
-                backendMessage ??
-                "Invalid role. Please choose the correct role for this account.";
-            } else {
-              message = backendMessage ?? "Invalid email or password";
-            }
+            message = backendMessage ?? "Invalid email or password";
           } else {
             message = backendMessage ?? message;
           }
@@ -163,23 +146,6 @@ export default function SignInPage() {
             required
             className="bg-slate-900/50 border-slate-800 focus:border-emerald-500 focus:ring-emerald-500/20 transition-all"
           />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="role" className="text-slate-300">Role</Label>
-          <select
-            id="role"
-            value={role}
-            onChange={(e) => setRole(e.target.value as AppRole)}
-            required
-            className="flex h-10 w-full items-center justify-between rounded-md border border-slate-800 bg-slate-900/50 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50 transition-all"
-          >
-            {ROLES.map((r) => (
-              <option key={r.value} value={r.value} className="bg-slate-900">
-                {r.label}
-              </option>
-            ))}
-          </select>
         </div>
 
         <Button

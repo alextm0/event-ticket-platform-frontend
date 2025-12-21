@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { PublishedEvent, Event } from "@/types";
 import { OrganizerManagementBar } from "@/components/organizer/OrganizerManagementBar";
 import { StaffManagement } from "@/components/organizer/StaffManagement";
+import { TicketTypeManagementWrapper } from "@/components/organizer/TicketTypeManagementWrapper";
 import { getGlobalStaffMembers, getEventStaffMembers } from "@/lib/backend-client";
 
 interface EventDetailsPageProps {
@@ -98,7 +99,11 @@ export default async function EventDetailsPage({ params }: EventDetailsPageProps
 
           {/* Ticket Types Card */}
           <div className="lg:col-span-1">
-            <TicketTypeList eventId={event.id} ticketTypes={ticketTypes} />
+            {isOrganizer ? (
+              <TicketTypeManagementWrapper eventId={event.id} ticketTypes={ticketTypes} />
+            ) : (
+              <TicketTypeList eventId={event.id} ticketTypes={ticketTypes} />
+            )}
           </div>
         </div>
 

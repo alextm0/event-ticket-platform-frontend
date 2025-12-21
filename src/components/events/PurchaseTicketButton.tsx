@@ -1,7 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { isClientAuthenticated, isClientAttendee } from '@/lib/client-auth';
+import { SESSION_UPDATED_EVENT } from '@/lib/session-events';
+import Link from 'next/link';
 
 interface PurchaseTicketButtonProps {
   eventId: string;
@@ -18,7 +21,28 @@ export default function PurchaseTicketButton({
 }: PurchaseTicketButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAttendee, setIsAttendee] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    const updateAuthState = () => {
+      setIsAuthenticated(isClientAuthenticated());
+      setIsAttendee(isClientAttendee());
+    };
+
+    // Initial check
+    updateAuthState();
+
+    // Listen for auth state changes (login/logout)
+    window.addEventListener('storage', updateAuthState);
+    window.addEventListener(SESSION_UPDATED_EVENT, updateAuthState);
+
+    return () => {
+      window.removeEventListener('storage', updateAuthState);
+      window.removeEventListener(SESSION_UPDATED_EVENT, updateAuthState);
+    };
+  }, []);
 
   const handleClick = async () => {
     setIsLoading(true);
@@ -49,6 +73,23 @@ export default function PurchaseTicketButton({
       setIsLoading(false);
     }
   };
+
+  // Don't show button if not authenticated or not an attendee
+  if (!isAuthenticated) {
+    return (
+      <Link
+        href="/sign-in"
+        className="mt-4 block w-full rounded-[var(--radius-md)] bg-[var(--color-primary)] px-3 py-2 text-center text-sm font-medium text-[var(--color-background)] hover:bg-[var(--color-primary)]/90 hover:shadow-lg transition-all duration-200"
+      >
+        Sign in to Purchase
+      </Link>
+    );
+  }
+
+  if (!isAttendee) {
+    // Staff, organizers, etc. should not see purchase button
+    return null;
+  }
 
   return (
     <>
