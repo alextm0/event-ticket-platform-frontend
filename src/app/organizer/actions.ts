@@ -149,16 +149,6 @@ export async function updateTicketTypeAction(
         const payload: UpdateTicketTypePayload = {};
 
         if (name && name !== "") payload.name = name;
-        if (description !== null && description !== "") payload.description = description;
-        else if (description === "") payload.description = undefined; // unset if empty string? or maybe just ignore. Typically empty string means 'remove'.
-        // Refined per request: "treat empty string as unset (use undefined)" implies removing it?
-        // Actually the request said: "check value !== null && value !== '' ... e.g. for description ... treat empty string as unset (use undefined)"
-        // This likely means if the user sends "", we might want to clear it or ignore it. 
-        // Let's stick to: only set if present and non-empty. 
-        // Wait, if I want to CLEAr a description, I might send empty string.
-        // But the prompt says "only set payload fields when the value is present and non-empty".
-        // So I will IGNORE empty strings.
-
         if (description && description !== "") payload.description = description;
         if (price && price !== "") payload.price = parseFloat(price);
         if (quantity && quantity !== "") payload.quantity = parseInt(quantity, 10);

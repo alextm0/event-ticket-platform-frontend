@@ -1,17 +1,17 @@
 "use client";
 
-import { useState } from "react";
 import type Ticket from "@/types/ticket-model";
 import TicketCard from "./TicketCard";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Ticket as TicketIcon } from "lucide-react";
+import { Ticket as TicketIcon, AlertCircle } from "lucide-react";
 
 interface MyTicketsListProps {
   tickets: Ticket[];
+  error?: string | null;
 }
 
-export default function MyTicketsList({ tickets }: MyTicketsListProps) {
+export default function MyTicketsList({ tickets, error }: MyTicketsListProps) {
   const now = new Date();
 
   const upcomingEvents: Ticket[] = [];
@@ -56,6 +56,23 @@ export default function MyTicketsList({ tickets }: MyTicketsListProps) {
     const dateB = new Date(b.event_start_time || 0).getTime();
     return dateB - dateA;
   });
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center rounded-[var(--radius-xl)] border border-red-500/20 bg-red-500/5 p-12 text-center animate-in fade-in zoom-in duration-500">
+        <div className="bg-red-500/10 p-4 rounded-full mb-4 ring-1 ring-red-500/20">
+          <AlertCircle className="h-8 w-8 text-red-500" />
+        </div>
+        <h3 className="text-lg font-semibold text-white mb-2">Oops! Something went wrong</h3>
+        <p className="text-slate-400 mb-6 max-w-sm">
+          {error}
+        </p>
+        <Button onClick={() => window.location.reload()} variant="outline" className="rounded-full border-white/10 hover:bg-white/5">
+          Try Again
+        </Button>
+      </div>
+    );
+  }
 
   if (upcomingEvents.length === 0 && pastEvents.length === 0) {
     return (

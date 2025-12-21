@@ -18,9 +18,9 @@ export function GoogleMapEmbed({ location, className = "" }: GoogleMapEmbedProps
         <div className={`relative w-full h-full min-h-[300px] rounded-[var(--radius-xl)] overflow-hidden bg-[var(--color-surface)] border border-white/5 ${className}`}>
             {location ? (
                 <iframe
+                    title={`Google map showing ${location}`}
                     width="100%"
                     height="100%"
-                    frameBorder="0"
                     style={{ border: 0, minHeight: "300px" }}
                     src={mapSrc}
                     allowFullScreen

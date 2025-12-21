@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import { createEventAction, updateEventAction } from "@/app/organizer/actions";
 import { Event } from "@/types";
+import { GoogleMapEmbed } from "@/components/ui/google-map-embed";
 
 // Helper component for Date and Time selection
 function DateTimePicker({
@@ -118,9 +119,7 @@ function DateTimePicker({
     );
 }
 
-import { GoogleMapEmbed } from "@/components/ui/google-map-embed";
 
-// ... (keep DateTimePicker as is)
 
 export default function EventForm({ initialData }: { initialData?: Event }) {
     const [loading, setLoading] = useState(false);
@@ -139,10 +138,11 @@ export default function EventForm({ initialData }: { initialData?: Event }) {
 
     // Debounce and Validate Location
     React.useEffect(() => {
+        const controller = new AbortController();
         const timer = setTimeout(() => {
             if (location.trim()) {
                 setDebouncedLocation(location);
-                validateLocation(location);
+                validateLocation(location, controller.signal);
             } else {
                 setDebouncedLocation("");
                 setLocationValidity(null);
@@ -150,14 +150,26 @@ export default function EventForm({ initialData }: { initialData?: Event }) {
             }
         }, 1000); // 1s debounce
 
-        return () => clearTimeout(timer);
+        return () => {
+            clearTimeout(timer);
+            controller.abort();
+        };
     }, [location]);
 
-    const validateLocation = async (query: string) => {
+    const validateLocation = async (query: string, signal?: AbortSignal) => {
         setIsCheckingLocation(true);
         try {
             // Fetch 5 results for suggestions
-            const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5`);
+            const response = await fetch(
+                `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5`,
+                {
+                    signal,
+                    headers: {
+                        "User-Agent": "EventTicketPlatform/1.0 (contact@eventticketplatform.com)",
+                        "Referer": typeof window !== "undefined" ? window.location.origin : ""
+                    }
+                }
+            );
             const data = await response.json();
 
             if (data && data.length > 0) {
@@ -171,12 +183,15 @@ export default function EventForm({ initialData }: { initialData?: Event }) {
                 setSuggestions([]);
                 setShowSuggestions(false);
             }
-        } catch (error) {
+        } catch (error: any) {
+            if (error.name === 'AbortError') return;
             console.warn("Location validation failed (network error):", error);
             setLocationValidity(null);
             setSuggestions([]);
         } finally {
-            setIsCheckingLocation(false);
+            if (!signal?.aborted) {
+                setIsCheckingLocation(false);
+            }
         }
     };
 

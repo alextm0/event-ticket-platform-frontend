@@ -168,20 +168,30 @@ export function StripeMockModal({
                                     <CreditCard className="absolute left-3 top-3.5 h-4 w-4 text-gray-500" />
                                 </div>
                                 <div className="flex divide-x divide-white/10">
-                                    <Input
-                                        id="expiry"
-                                        placeholder="MM / YY"
-                                        value={expiry}
-                                        onChange={(e) => setExpiry(formatExpiry(e.target.value))}
-                                        className="border-0 bg-transparent text-white placeholder:text-gray-600 focus-visible:ring-0 text-center h-11 rounded-none"
-                                    />
-                                    <Input
-                                        id="cvc"
-                                        placeholder="CVC"
-                                        value={cvc}
-                                        onChange={(e) => setCvc(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                                        className="border-0 bg-transparent text-white placeholder:text-gray-600 focus-visible:ring-0 text-center h-11 rounded-none"
-                                    />
+                                    <div className="flex-1 relative">
+                                        <Label htmlFor="expiry" className="sr-only">Expiry Date (MM/YY)</Label>
+                                        <Input
+                                            id="expiry"
+                                            placeholder="MM / YY"
+                                            value={expiry}
+                                            onChange={(e) => setExpiry(formatExpiry(e.target.value))}
+                                            inputMode="numeric"
+                                            pattern="[0-9/]*"
+                                            className="border-0 bg-transparent text-white placeholder:text-gray-600 focus-visible:ring-0 text-center h-11 rounded-none w-full"
+                                        />
+                                    </div>
+                                    <div className="flex-1 relative">
+                                        <Label htmlFor="cvc" className="sr-only">CVC</Label>
+                                        <Input
+                                            id="cvc"
+                                            placeholder="CVC"
+                                            value={cvc}
+                                            onChange={(e) => setCvc(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                                            inputMode="numeric"
+                                            pattern="[0-9]*"
+                                            className="border-0 bg-transparent text-white placeholder:text-gray-600 focus-visible:ring-0 text-center h-11 rounded-none w-full"
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         </div>

@@ -15,9 +15,10 @@ import { useTicketValidator } from "./hooks/useTicketValidator";
 
 interface StaffScanClientProps {
     initialEvents: AssignedEvent[];
+    userId: string;
 }
 
-export function StaffScanClient({ initialEvents }: StaffScanClientProps) {
+export function StaffScanClient({ initialEvents, userId }: StaffScanClientProps) {
     const [eventId, setEventId] = useState<string>(initialEvents[0]?.eventId || "");
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [isScanning, setIsScanning] = useState(true);
@@ -27,6 +28,7 @@ export function StaffScanClient({ initialEvents }: StaffScanClientProps) {
     const cooldown = useScanCooldown();
     const validator = useTicketValidator({
         eventId,
+        userId,
         onValidationComplete: () => {
             // After validation completes, wait a bit then re-enable scanning UI
             setTimeout(() => {

@@ -4,6 +4,8 @@ import { cookies } from "next/headers";
 import type { AppRole } from "./user-profile";
 import ROLE_DESTINATIONS from "@/utils/role-destinations";
 
+const VALID_ROLES = ["admin", "organizer", "staff", "attendee"];
+
 interface RequireRoleOptions {
   allowGrant?: boolean;
 }
@@ -20,7 +22,7 @@ async function getSessionRole(): Promise<AppRole | null> {
   if (!token) return null; // Must have token to have a role
 
   const role = cookieStore.get("userRole")?.value;
-  if (role && ["admin", "organizer", "staff", "attendee"].includes(role)) {
+  if (role && VALID_ROLES.includes(role)) {
     return role as AppRole;
   }
   return null;
@@ -75,7 +77,11 @@ export async function requireAuth() {
 export async function fetchAuthContext(options: FetchAuthContextOptions = {}) {
   const cookieStore = await cookies();
   const token = cookieStore.get("authToken")?.value;
-  const role = cookieStore.get("userRole")?.value as AppRole | undefined;
+  const roleValue = cookieStore.get("userRole")?.value;
+  const role =
+    roleValue && VALID_ROLES.includes(roleValue)
+      ? (roleValue as AppRole)
+      : undefined;
   const userId = cookieStore.get("userId")?.value;
 
   if (!token || !role || !userId) {

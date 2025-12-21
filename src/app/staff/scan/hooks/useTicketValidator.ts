@@ -5,21 +5,22 @@ import { ScanStatus, ScanResultDetails, ValidationLog } from '../types';
 
 interface UseTicketValidatorProps {
     eventId: string;
+    userId: string;
     onValidationComplete?: () => void;
 }
 
-export function useTicketValidator({ eventId, onValidationComplete }: UseTicketValidatorProps) {
+export function useTicketValidator({ eventId, userId, onValidationComplete }: UseTicketValidatorProps) {
     const [status, setStatus] = useState<ScanStatus>('idle');
     const [message, setMessage] = useState<string | null>(null);
     const [details, setDetails] = useState<ScanResultDetails | null>(null);
     const [recentLogs, setRecentLogs] = useState<ValidationLog[]>([]);
 
     const fetchLogs = useCallback(async () => {
-        if (!eventId) return;
+        if (!eventId || !userId) return;
         try {
             const response = await fetch(`/api/events/${eventId}/validation-logs`, {
                 cache: "no-store",
-                headers: { "X-User-Id": "current" } // Ensure header is present for backend
+                headers: { "X-User-Id": userId } // Ensure header is present for backend
             });
             if (response.ok) {
                 const logs = await response.json();
@@ -28,7 +29,7 @@ export function useTicketValidator({ eventId, onValidationComplete }: UseTicketV
         } catch (error) {
             console.error("Failed to fetch logs:", error);
         }
-    }, [eventId]);
+    }, [eventId, userId]);
 
     const validate = useCallback(async (code: string) => {
         if (!eventId) return;

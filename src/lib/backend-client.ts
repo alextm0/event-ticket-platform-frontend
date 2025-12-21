@@ -1019,10 +1019,7 @@ export async function getValidationLogs(eventId: string): Promise<TicketValidati
     `${serverRuntimeConfig.backendApiUrl}/api/v1/events/${eventId}/ticket-validations`,
     {
       method: "GET",
-      headers: {
-        ...headers,
-        "X-User-Id": userId
-      },
+      headers,
       cache: "no-store",
     },
   );

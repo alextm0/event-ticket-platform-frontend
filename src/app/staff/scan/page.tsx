@@ -21,5 +21,5 @@ export default async function StaffScanPage() {
     // assignedEvents remains as empty array
   }
 
-  return <StaffScanClient initialEvents={assignedEvents} />;
+  return <StaffScanClient initialEvents={assignedEvents} userId={userId} />;
 }

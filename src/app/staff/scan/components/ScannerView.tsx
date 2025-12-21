@@ -46,6 +46,12 @@ export function ScannerView({
         }
     };
 
+    const formatSafeDate = (dateStr: string | undefined, formatter: (d: Date) => string): string => {
+        if (!dateStr) return "Unknown";
+        const date = new Date(dateStr);
+        return isNaN(date.getTime()) ? "Unknown" : formatter(date);
+    };
+
     return (
         <div className={cn(
             "relative overflow-hidden border-4 border-white/5 bg-black/40 shadow-2xl transition-all duration-700 mx-auto",
@@ -119,7 +125,9 @@ export function ScannerView({
                                     {details.purchaseDate && (
                                         <div className="text-left">
                                             <p className="text-xs text-slate-400 uppercase tracking-wider mb-1">Purchased</p>
-                                            <p className="text-sm text-slate-300">{formatDistanceToNow(new Date(details.purchaseDate), { addSuffix: true })}</p>
+                                            <p className="text-sm text-slate-300">
+                                                {formatSafeDate(details.purchaseDate, (d) => formatDistanceToNow(d, { addSuffix: true }))}
+                                            </p>
                                         </div>
                                     )}
                                 </div>

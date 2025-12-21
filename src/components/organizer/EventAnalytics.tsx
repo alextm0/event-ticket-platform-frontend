@@ -3,19 +3,21 @@
 import React, { useState, useEffect } from "react";
 import { DollarSign, Ticket, Calendar, TrendingUp, Users, ArrowUpRight, ArrowDownRight, AlertCircle, Loader2 } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { TicketType } from "@/types";
+import { TicketType, PublishedEvent } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { fetchEventAnalytics } from "@/app/actions/analytics";
+import { format, differenceInDays, startOfDay } from "date-fns";
 
 interface EventAnalyticsProps {
     eventId: string;
     ticketTypes: TicketType[];
+    event?: PublishedEvent;
 }
 
-export function EventAnalytics({ eventId, ticketTypes }: EventAnalyticsProps) {
+export function EventAnalytics({ eventId, ticketTypes, event }: EventAnalyticsProps) {
     const [compareMode, setCompareMode] = useState(false);
     const [salesHistory, setSalesHistory] = useState<any[]>([]);
     const [recentOrders, setRecentOrders] = useState<any[]>([]);
@@ -50,6 +52,23 @@ export function EventAnalytics({ eventId, ticketTypes }: EventAnalyticsProps) {
 
     const checkedInCount = operations.checkedInCount;
     const noShowRate = operations.noShowRate;
+
+    // Days Until Event Calculation
+    const getDaysRemaining = () => {
+        if (!event?.startTime) return { value: "—", subtext: "TBD" };
+        const start = new Date(event.startTime);
+        if (isNaN(start.getTime())) return { value: "—", subtext: "TBD" };
+
+        const now = new Date();
+        const days = differenceInDays(startOfDay(start), startOfDay(now));
+        const dateStr = format(start, "MMM d, yyyy");
+
+        if (days < 0) return { value: "Completed", subtext: `Event date: ${dateStr}` };
+        if (days === 0) return { value: "Today", subtext: `Event date: ${dateStr}` };
+        return { value: `${days} Day${days > 1 ? 's' : ''}`, subtext: `Event date: ${dateStr}` };
+    };
+
+    const daysInfo = getDaysRemaining();
 
     const trendData = salesHistory;
 
@@ -96,9 +115,9 @@ export function EventAnalytics({ eventId, ticketTypes }: EventAnalyticsProps) {
                 />
                 <PulseCard
                     title="Days Until Event"
-                    value="12 Days"
-                    subtext="Event date: Jan 15, 2026"
-                    trend="On track"
+                    value={daysInfo.value}
+                    subtext={daysInfo.subtext}
+                    trend={daysInfo.value === "Completed" ? "Post-event" : "On track"}
                     positive={true}
                     icon={<Calendar className="w-6 h-6 text-purple-400" />}
                     compareMode={compareMode}

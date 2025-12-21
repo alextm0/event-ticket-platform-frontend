@@ -192,7 +192,7 @@ export function EventDetailsView({
 
                         {/* Tab Content: Analytics */}
                         {activeTab === "analytics" && isOrganizer && (
-                            <EventAnalytics eventId={event.id} ticketTypes={ticketTypes} />
+                            <EventAnalytics eventId={event.id} ticketTypes={ticketTypes} event={event} />
                         )}
                     </div>
 

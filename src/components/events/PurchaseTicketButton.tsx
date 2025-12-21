@@ -58,26 +58,35 @@ export default function PurchaseTicketButton({
 
   const handlePurchase = async () => {
     // This function is called by the modal on success
-    const response = await fetch('/api/purchase-ticket', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        eventId,
-        ticketTypeId,
-        quantity: 1,
-      }),
-    });
+    setError(null);
+    setIsLoading(true);
 
-    if (!response.ok) {
+    try {
+      const response = await fetch('/api/purchase-ticket', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          eventId,
+          ticketTypeId,
+          quantity: 1,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to purchase ticket');
+      }
+
       const data = await response.json();
-      throw new Error(data.error || 'Failed to purchase ticket');
+      // Redirect to my-tickets page
+      router.push(`/my-tickets?orderId=${data.orderId}`);
+    } catch (err: any) {
+      console.error('Purchase failed', err);
+      setError(err.message || 'An unexpected error occurred. Please try again.');
+      setIsLoading(false);
     }
-
-    const data = await response.json();
-    // Redirect to my-tickets page
-    router.push(`/my-tickets?orderId=${data.orderId}`);
   };
 
   if (!isMounted) {
@@ -92,8 +101,8 @@ export default function PurchaseTicketButton({
       <Link
         href="/sign-in"
         className={`rounded-[var(--radius-md)] bg-[var(--color-primary)] font-medium text-[var(--color-background)] hover:bg-[var(--color-primary)]/90 transition-all duration-200 ${compact
-            ? 'px-3 py-1 text-xs'
-            : 'mt-4 block w-full px-3 py-2 text-center text-sm hover:shadow-lg'
+          ? 'px-3 py-1 text-xs'
+          : 'mt-4 block w-full px-3 py-2 text-center text-sm hover:shadow-lg'
           }`}
       >
         {compact ? 'Sign in' : 'Sign in to Purchase'}
@@ -111,8 +120,8 @@ export default function PurchaseTicketButton({
       <button
         disabled={isSoldOut || isInactive || isLoading}
         className={`rounded-[var(--radius-md)] bg-[var(--color-primary)] font-medium text-[var(--color-background)] hover:bg-[var(--color-primary)]/90 disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-[var(--color-surface)] disabled:text-[var(--color-secondary)] transition-all duration-200 ${compact
-            ? 'px-3 py-1 text-xs'
-            : 'mt-4 w-full px-3 py-2 text-sm hover:shadow-lg'
+          ? 'px-3 py-1 text-xs'
+          : 'mt-4 w-full px-3 py-2 text-sm hover:shadow-lg'
           }`}
         onClick={() => setShowPaymentModal(true)}
       >

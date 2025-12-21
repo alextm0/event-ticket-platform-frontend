@@ -11,10 +11,12 @@ export default async function MyTicketsPage() {
   await requireRole("attendee", { allowGrant: false });
 
   let tickets: Ticket[] = [];
+  let errorMsg: string | null = null;
   try {
     tickets = await getUserTickets();
-  } catch (err) {
+  } catch (err: any) {
     console.error("Failed to fetch tickets", err);
+    errorMsg = "We couldn't load your tickets. Please try again later.";
   }
 
   return (
@@ -32,7 +34,7 @@ export default async function MyTicketsPage() {
         </Button>
       </div>
 
-      <MyTicketsList tickets={tickets} />
+      <MyTicketsList tickets={tickets} error={errorMsg} />
     </div>
   );
 }

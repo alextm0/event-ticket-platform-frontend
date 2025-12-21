@@ -44,17 +44,20 @@ export function ScanHistory({ logs, isLoading }: ScanHistoryProps) {
 
                         let statusColor = "text-red-400";
                         let statusBg = "bg-red-500/5 border-red-500/20";
+                        let iconBg = "bg-red-500";
                         let StatusIcon = XCircle;
                         let statusText = "Invalid";
 
                         if (logIsValid) {
                             statusColor = "text-emerald-400";
                             statusBg = "bg-emerald-500/5 border-emerald-500/20";
+                            iconBg = "bg-emerald-500";
                             StatusIcon = CheckCircle2;
                             statusText = "Valid";
                         } else if (isDuplicate) {
                             statusColor = "text-yellow-400";
                             statusBg = "bg-yellow-500/5 border-yellow-500/20";
+                            iconBg = "bg-yellow-500";
                             StatusIcon = AlertTriangle;
                             statusText = "Duplicate";
                         }
@@ -70,7 +73,7 @@ export function ScanHistory({ logs, isLoading }: ScanHistoryProps) {
                                 <div className="flex items-center gap-3">
                                     <div className={cn(
                                         "flex h-8 w-8 items-center justify-center rounded-lg bg-opacity-20",
-                                        statusColor.replace('text-', 'bg-').replace('400', '500'), // approximate bg from text color
+                                        iconBg,
                                         statusColor
                                     )}>
                                         <StatusIcon className="h-4 w-4" />
