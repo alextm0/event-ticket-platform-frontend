@@ -1019,7 +1019,10 @@ export async function getValidationLogs(eventId: string): Promise<TicketValidati
     `${serverRuntimeConfig.backendApiUrl}/api/v1/events/${eventId}/ticket-validations`,
     {
       method: "GET",
-      headers,
+      headers: {
+        ...headers,
+        "X-User-Id": userId
+      },
       cache: "no-store",
     },
   );
@@ -1029,6 +1032,92 @@ export async function getValidationLogs(eventId: string): Promise<TicketValidati
     throw new Error(
       `Failed to fetch validation logs (${response.status} ${response.statusText}): ${body}`,
     );
+  }
+
+  return response.json();
+}
+
+export interface SalesHistoryItem {
+  date: string;
+  revenue: number;
+  sales: number;
+}
+
+export async function getEventSalesHistory(eventId: string): Promise<SalesHistoryItem[]> {
+  const token = await getAuthToken();
+  if (!token) throw new Error("No authentication token available.");
+
+  const response = await fetch(`${serverRuntimeConfig.backendApiUrl}/api/v1/events/${eventId}/analytics/sales-history`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    if (response.status === 404) return [];
+    throw new Error(`Failed to fetch sales history (${response.status}): ${body}`);
+  }
+
+  return response.json();
+}
+
+export interface RecentOrder {
+  id: string;
+  user: string;
+  ticket: string;
+  amount: number;
+  timestamp: string;
+}
+
+export async function getEventOrders(eventId: string): Promise<RecentOrder[]> {
+  const token = await getAuthToken();
+  if (!token) throw new Error("No authentication token available.");
+
+  const response = await fetch(`${serverRuntimeConfig.backendApiUrl}/api/v1/events/${eventId}/orders`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    if (response.status === 404) return [];
+    throw new Error(`Failed to fetch event orders (${response.status}): ${body}`);
+  }
+
+  return response.json();
+}
+
+export interface OperationsMetrics {
+  checkedInCount: number;
+  totalSold: number;
+  noShowRate: number;
+}
+
+export async function getEventOperationsMetrics(eventId: string): Promise<OperationsMetrics> {
+  const token = await getAuthToken();
+  if (!token) throw new Error("No authentication token available.");
+
+  const response = await fetch(`${serverRuntimeConfig.backendApiUrl}/api/v1/events/${eventId}/analytics/operations`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    if (response.status === 404) return { checkedInCount: 0, totalSold: 0, noShowRate: 0 };
+    throw new Error(`Failed to fetch operations metrics (${response.status}): ${body}`);
   }
 
   return response.json();

@@ -21,13 +21,15 @@ export async function validateTicket(
   message: string;
   validationStatus?: string;
   ticketStatus?: string;
+  ticketEventId?: string;
+  ticketEventTitle?: string;
 }> {
   const body: any = {};
-  
+
   if (options?.code) {
     body.code = options.code;
   }
-  
+
   if (options?.organizerId) {
     body.organizerId = options.organizerId;
   }
@@ -36,7 +38,7 @@ export async function validateTicket(
   // URL-encode path parameters to handle special characters in scanned data
   const encodedEventId = encodeURIComponent(eventId);
   const encodedTicketId = encodeURIComponent(ticketId);
-  
+
   const response = await fetch(
     `/api/events/${encodedEventId}/tickets/${encodedTicketId}/validate`,
     {
@@ -52,22 +54,22 @@ export async function validateTicket(
     const errorData = await response.json().catch(() => ({
       message: "Validation failed",
     }));
-    
+
     // Extract user-friendly error message
     let errorMessage = errorData.message || `HTTP ${response.status}`;
-    
+
     // Check for detail field (common in error responses)
     if (errorData.detail) {
       errorMessage = errorData.detail;
     } else if (errorData.title && !errorData.message) {
       errorMessage = errorData.title;
     }
-    
+
     // Handle specific invalid QR code format errors
     if (errorMessage.includes("Invalid QR code format") || errorMessage.includes("missing TICKET prefix")) {
       errorMessage = "Invalid QR code format. Please scan a valid ticket QR code.";
     }
-    
+
     throw new Error(errorMessage);
   }
 
