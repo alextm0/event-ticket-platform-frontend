@@ -9,12 +9,10 @@ const ROLE_PAGES: Record<string, Array<{ href: string, label: string }>> = {
         ],
     "staff":
         [
-            { href: "/staff", label: "Staff Dashboard" },
-            { href: "/staff/scan", label: "Scan" }
+            { href: "/staff", label: "Staff Dashboard" }
         ],
     "attendee":
         [
-            { href: "/attendee", label: "Attendee Dashboard" },
             { href: "/my-tickets", label: "My Tickets" }
         ]
 }

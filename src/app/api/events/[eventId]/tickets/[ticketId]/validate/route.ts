@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { validateTicketWithBackend } from "@/lib/shared/ticket-validation";
+import { validateTicketWithBackend } from "@/lib/validation/server";
+
 
 interface RouteParams {
   params: Promise<{
@@ -115,7 +116,11 @@ export async function POST(request: Request, { params }: RouteParams) {
     } else if (validationStatus === "INVALID") {
       // Ticket was already validated or is invalid
       const ticketStatus = result.data?.ticketStatus;
-      if (ticketStatus === "CHECKED_IN" || ticketStatus === "USED") {
+      const ticketEventId = result.data?.ticketEventId;
+
+      if (ticketEventId && ticketEventId !== eventId) {
+        message = `Ticket is valid for: ${result.data?.ticketEventTitle || "Another Event"}`;
+      } else if (ticketStatus === "CHECKED_IN" || ticketStatus === "USED") {
         message = result.data?.message || "Ticket already checked in";
       } else {
         message = result.data?.message || "Ticket is invalid";

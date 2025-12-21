@@ -33,53 +33,52 @@ export function OrganizerManagementBar({ event }: OrganizerManagementBarProps) {
 
     return (
         <>
-            <div className="mb-8 flex flex-wrap items-center gap-4 rounded-2xl border border-[var(--color-primary)]/20 bg-[var(--color-primary)]/5 p-4 backdrop-blur-md">
-                <div className="flex items-center gap-2 mr-auto">
-                    <div className="h-2 w-2 rounded-full bg-[var(--color-primary)] animate-pulse" />
-                    <span className="text-sm font-medium text-white">Organizer Management</span>
-                </div>
-                <div className="flex items-center gap-3">
-                    {event.status === "DRAFT" ? (
-                        <Button
-                            size="sm"
-                            variant="mint"
-                            className="gap-2"
-                            onClick={() => setActiveModal("publish")}
-                            disabled={isPending}
-                        >
-                            <Globe className="h-4 w-4" />
-                            Publish Now
-                        </Button>
-                    ) : (
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            className="gap-2 border-yellow-500/50 text-yellow-400 hover:bg-yellow-500/10"
-                            onClick={() => setActiveModal("unpublish")}
-                            disabled={isPending}
-                        >
-                            <Lock className="h-4 w-4" />
-                            Revert to Draft
-                        </Button>
-                    )}
-
-                    <Button size="sm" variant="outline" className="gap-2 border-[var(--color-border)]" asChild disabled={isPending}>
+            <div className="bg-[var(--color-surface)] rounded-xl border border-white/10 shadow-2xl p-5 mb-6">
+                <div className="space-y-3">
+                    <Button
+                        variant="outline"
+                        className="w-full justify-start gap-2 h-10 border-white/10 hover:bg-white/5 text-slate-200 hover:text-white transition-colors"
+                        asChild
+                    >
                         <Link href={`/organizer/edit-event/${event.id}`}>
                             <Pencil className="h-4 w-4" />
-                            Edit details
+                            Edit Event Details
                         </Link>
                     </Button>
 
-                    <Button
-                        size="sm"
-                        variant="ghost"
-                        className="gap-2 text-red-400 hover:bg-red-500/10 hover:text-red-300"
-                        onClick={() => setActiveModal("delete")}
-                        disabled={isPending}
-                    >
-                        <Trash2 className="h-4 w-4" />
-                        Delete
-                    </Button>
+                    <div className="grid grid-cols-2 gap-3">
+                        {event.status === "DRAFT" ? (
+                            <Button
+                                variant="mint"
+                                className="w-full gap-2 shadow-lg shadow-emerald-500/10"
+                                onClick={() => setActiveModal("publish")}
+                                disabled={isPending}
+                            >
+                                <Globe className="h-4 w-4" />
+                                Publish
+                            </Button>
+                        ) : (
+                            <Button
+                                variant="outline"
+                                className="w-full gap-2 border-yellow-500/30 text-yellow-500 hover:bg-yellow-500/10 hover:text-yellow-400"
+                                onClick={() => setActiveModal("unpublish")}
+                                disabled={isPending}
+                            >
+                                <Lock className="h-4 w-4" />
+                                Unpublish
+                            </Button>
+                        )}
+
+                        <Button
+                            variant="destructive"
+                            className="w-full gap-2 bg-red-900/20 text-red-400 hover:bg-red-900/40 hover:text-red-300 border border-red-900/30"
+                            onClick={() => setActiveModal("delete")}
+                            disabled={isPending}
+                        >
+                            <Trash2 className="h-4 w-4" />
+                            Delete
+                        </Button>
+                    </div>
                 </div>
             </div>
 

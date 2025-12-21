@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getCurrentUserId, getStaffAssignedEvents } from "@/lib/backend-client";
 import { requireRole } from "@/lib/auth-guards";
 import { StaffScanClient } from "./StaffScanClient";
+import { AssignedEvent } from "@/types";
 
 export default async function StaffScanPage() {
   await requireRole("staff", { allowGrant: false });
@@ -11,13 +12,14 @@ export default async function StaffScanPage() {
     notFound();
   }
 
-  let assignedEvents = [];
+  let assignedEvents: AssignedEvent[] = [];
   try {
-    assignedEvents = await getStaffAssignedEvents(userId);
+    const events = await getStaffAssignedEvents(userId);
+    assignedEvents = events || []; // Ensure it's always an array
   } catch (error) {
     console.error("Failed to fetch assigned events for staff:", error);
-    // Continue with empty list, the UI will handle it
+    // assignedEvents remains as empty array
   }
 
-  return <StaffScanClient initialEvents={assignedEvents} />;
+  return <StaffScanClient initialEvents={assignedEvents} userId={userId} />;
 }

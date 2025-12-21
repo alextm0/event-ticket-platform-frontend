@@ -11,8 +11,7 @@ export function middleware(request: NextRequest) {
         "/my-tickets",
         "/organizer",
         "/admin",
-        "/staff",
-        "/attendee"
+        "/staff"
     ];
 
     const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));

@@ -40,9 +40,11 @@ export function AppHeader() {
         </div>
 
         <nav className="absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 transform items-center gap-8 md:flex">
-          <HeaderLink
-            item={{ href: "/browse-events", label: "Browse Events" }}
-          />
+          {role !== "staff" && (
+            <HeaderLink
+              item={{ href: "/browse-events", label: "Browse Events" }}
+            />
+          )}
           {links.map((item) => (
             <HeaderLink key={item.href} item={item} />
           ))}

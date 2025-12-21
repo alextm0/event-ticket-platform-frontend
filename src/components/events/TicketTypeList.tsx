@@ -25,8 +25,7 @@ export function TicketTypeList({ eventId, ticketTypes }: TicketTypeListProps) {
 
     if (ticketTypes.length === 0) {
         return (
-            <div className="rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-surface)]/50 p-6 backdrop-blur-md">
-                <h2 className="mb-6 text-xl font-semibold text-white">Ticket Types</h2>
+            <div className="p-4 text-center">
                 <p className="text-sm text-[var(--color-secondary)]">
                     No ticket types available for this event yet.
                 </p>
@@ -35,94 +34,46 @@ export function TicketTypeList({ eventId, ticketTypes }: TicketTypeListProps) {
     }
 
     return (
-        <div className="rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-surface)]/50 p-6 backdrop-blur-md">
-            <h2 className="mb-6 text-xl font-semibold text-white">Ticket Types</h2>
-            <div className="space-y-4">
-                {ticketTypes.map((ticketType) => {
-                    const remaining = remainingQuantity(ticketType);
-                    const isSoldOut = remaining <= 0;
-                    const isInactive = !ticketType.active;
+        <div className="space-y-1">
+            {ticketTypes.map((ticketType) => {
+                const remaining = remainingQuantity(ticketType);
+                const isSoldOut = remaining <= 0;
+                const isInactive = !ticketType.active;
 
-                    return (
-                        <div
-                            key={ticketType.id}
-                            className={`rounded-[var(--radius-lg)] border p-4 transition-all duration-200 ${isSoldOut || isInactive
-                                    ? "border-[var(--color-border)] bg-[var(--color-background)]/30 opacity-60"
-                                    : "border-[var(--color-border)] bg-[var(--color-background)]/50 hover:border-[var(--color-primary)]/30"
-                                }`}
-                        >
-                            <div className="mb-3 flex items-start justify-between">
-                                <div className="flex-1">
-                                    <h3 className="font-semibold text-white">{ticketType.name}</h3>
-                                    {ticketType.description && (
-                                        <p className="mt-1 text-sm text-[var(--color-secondary)]">
-                                            {ticketType.description}
-                                        </p>
-                                    )}
-                                </div>
-                                <div className="ml-4 text-right">
-                                    <div className="text-lg font-bold text-white">
-                                        {ticketType.currency || "$"}
-                                        {ticketType.price.toFixed(2)}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="space-y-2 border-t border-[var(--color-border)] pt-3 text-xs">
-                                <div className="flex justify-between text-[var(--color-secondary)]">
-                                    <span>Total Quantity:</span>
-                                    <span className="font-medium text-slate-300">
-                                        {ticketType.totalQuantity}
-                                    </span>
-                                </div>
-                                <div className="flex justify-between text-[var(--color-secondary)]">
-                                    <span>Sold:</span>
-                                    <span className="font-medium text-slate-300">
-                                        {ticketType.soldCount}
-                                    </span>
-                                </div>
-                                <div className="flex justify-between text-[var(--color-secondary)]">
-                                    <span>Remaining:</span>
-                                    <span
-                                        className={`font-medium ${remaining <= 10
-                                                ? "text-yellow-400"
-                                                : remaining === 0
-                                                    ? "text-red-400"
-                                                    : "text-green-400"
-                                            }`}
-                                    >
-                                        {remaining}
-                                    </span>
-                                </div>
-                            </div>
-
-                            <div className="mt-3 flex items-center gap-2">
-                                <span
-                                    className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${ticketType.active
-                                            ? "bg-emerald-500/20 text-emerald-400"
-                                            : "bg-red-500/20 text-red-400"
-                                        }`}
-                                >
-                                    {ticketType.active ? "Active" : "Inactive"}
-                                </span>
-                                {isSoldOut && (
-                                    <span className="inline-flex items-center rounded-full bg-red-500/20 px-2 py-1 text-xs font-medium text-red-400">
-                                        Sold Out
-                                    </span>
-                                )}
-                            </div>
-                            <div>
-                                <PurchaseTicketButton
-                                    eventId={eventId}
-                                    ticketTypeId={ticketType.id}
-                                    isSoldOut={isSoldOut}
-                                    isInactive={isInactive}
-                                />
-                            </div>
+                return (
+                    <div
+                        key={ticketType.id}
+                        className={`group flex items-center justify-between p-3 rounded-xl border border-transparent hover:bg-white/5 hover:border-white/5 transition-all duration-200 ${isInactive ? 'opacity-50 grayscale' : ''}`}
+                    >
+                        <div className="flex flex-col gap-0.5 min-w-0 pr-4">
+                            <span className="font-medium text-white truncate">
+                                {ticketType.name}
+                            </span>
+                            <span className={`text-[11px] font-medium tracking-wide ${isSoldOut ? 'text-red-400 uppercase' : 'text-emerald-400/80'}`}>
+                                {isSoldOut ? "Sold Out" : `${remaining} tickets left`}
+                            </span>
                         </div>
-                    );
-                })}
-            </div>
+
+                        <div className="flex flex-col items-end gap-1.5 shrink-0">
+                            <div className="text-sm font-bold text-white tabular-nums">
+                                {ticketType.currency || "$"}
+                                {ticketType.price.toFixed(2)}
+                            </div>
+
+                            <PurchaseTicketButton
+                                eventId={eventId}
+                                ticketTypeId={ticketType.id}
+                                isSoldOut={isSoldOut}
+                                isInactive={isInactive}
+                                ticketName={ticketType.name}
+                                price={ticketType.price}
+                                currency={ticketType.currency}
+                                compact={true}
+                            />
+                        </div>
+                    </div>
+                );
+            })}
         </div>
     );
 }

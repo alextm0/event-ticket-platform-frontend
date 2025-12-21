@@ -16,6 +16,9 @@ type Ticket = {
   ticket_type_name?: string;
   qr_code_id?: string;
   purchase_date?: string;
+  attendee_name?: string;
+  user_email?: string;
+  user_id?: string;
 };
 
 export default Ticket;
