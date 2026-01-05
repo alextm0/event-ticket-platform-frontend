@@ -33,11 +33,12 @@ export async function GET(_request: Request, { params }: RouteParams) {
     }
 
     const response = await fetch(
-      `${serverRuntimeConfig.backendApiUrl}/api/v1/tickets/${ticketId}/download`,
+      `${serverRuntimeConfig.backendApiUrl}/api/v1/tickets/${encodeURIComponent(ticketId)}/download`,
       {
         method: "GET",
         headers,
         cache: "no-store",
+        signal: AbortSignal.timeout(30000), // 30 second timeout
       },
     );
 
@@ -71,9 +72,16 @@ export async function GET(_request: Request, { params }: RouteParams) {
     const contentDisposition = response.headers.get("Content-Disposition");
     let filename = `ticket-${ticketId}.pdf`;
     if (contentDisposition) {
-      const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
-      if (filenameMatch) {
-        filename = filenameMatch[1];
+      // Try RFC 5987 encoded filename first
+      const encodedMatch = contentDisposition.match(/filename\*=UTF-8''(.+)/i);
+      if (encodedMatch) {
+        filename = decodeURIComponent(encodedMatch[1]);
+      } else {
+        // Fall back to basic filename
+        const filenameMatch = contentDisposition.match(/filename="([^"]+)"|filename=([^;]+)/);
+        if (filenameMatch) {
+          filename = (filenameMatch[1] || filenameMatch[2]).trim();
+        }
       }
     }
 

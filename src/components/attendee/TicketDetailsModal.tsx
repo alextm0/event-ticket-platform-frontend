@@ -74,10 +74,18 @@ export default function TicketDetailsModal({ isOpen, onClose, ticket }: TicketDe
     setDownloading(true);
     setError(null);
     
+    let objectUrl: string | null = null;
+    
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
       const response = await fetch(`/api/tickets/${ticket.id}/download`, {
         method: "GET",
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         // Try to parse error response
@@ -91,17 +99,24 @@ export default function TicketDetailsModal({ isOpen, onClose, ticket }: TicketDe
       const blob = await response.blob();
 
       // Create a temporary download link
-      const url = window.URL.createObjectURL(blob);
+      objectUrl = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
-      link.href = url;
+      link.href = objectUrl;
       
-      // Get filename from Content-Disposition header or use default
+      // Get filename from Content-Disposition header (backend sets this correctly)
       const contentDisposition = response.headers.get("Content-Disposition");
       let filename = `ticket-${ticket.id}.pdf`;
       if (contentDisposition) {
-        const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
-        if (filenameMatch) {
-          filename = filenameMatch[1];
+        // Try RFC 5987 encoded filename first
+        const encodedMatch = contentDisposition.match(/filename\*=UTF-8''(.+)/i);
+        if (encodedMatch) {
+          filename = decodeURIComponent(encodedMatch[1]);
+        } else {
+          // Fall back to basic filename
+          const filenameMatch = contentDisposition.match(/filename="([^"]+)"|filename=([^;]+)/);
+          if (filenameMatch) {
+            filename = (filenameMatch[1] || filenameMatch[2]).trim();
+          }
         }
       }
       
@@ -111,14 +126,15 @@ export default function TicketDetailsModal({ isOpen, onClose, ticket }: TicketDe
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-
-      // Clean up the URL object
-      window.URL.revokeObjectURL(url);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to download ticket PDF";
       setError(errorMessage);
       console.error("Error downloading ticket PDF:", err);
     } finally {
+      // Clean up the URL object
+      if (objectUrl) {
+        window.URL.revokeObjectURL(objectUrl);
+      }
       setDownloading(false);
     }
   };
