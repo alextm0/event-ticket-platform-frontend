@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { ArrowRight, BarChart3, Users, Ticket, Globe, Zap, ShieldCheck } from "lucide-react";
+import { BarChart3, Users, Ticket, Globe, Zap, ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { GlassCard } from "@/components/ui/glass-card";
+import { GetStartedButton } from "@/components/GetStartedButton";
 
 export default function LandingPage() {
   return (
@@ -30,15 +31,8 @@ export default function LandingPage() {
             Manage events, track sales in real-time, and analyze audience behavior with a platform designed for scale and precision.
           </p>
 
-          <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-            <Button size="lg" variant="mint" asChild>
-              <Link href="/dashboard">
-                Get Started <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-            <Button size="lg" variant="outline">
-              View Demo
-            </Button>
+          <div className="flex items-center justify-center">
+            <GetStartedButton />
           </div>
         </div>
 
