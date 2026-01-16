@@ -100,10 +100,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
       stack: error instanceof Error ? error.stack : undefined,
     });
     return NextResponse.json(
-      { 
-        message: "Internal Server Error",
-        details: error instanceof Error ? error.message : "Unknown error"
-      },
+      { message: "Unable to download ticket" },
       { status: 500 }
     );
   }

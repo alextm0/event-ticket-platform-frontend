@@ -22,12 +22,8 @@ export function GetStartedButton() {
       // User is authenticated - redirect to their role dashboard
       const role = getClientUserRole();
       const destination = role ? ROLE_DESTINATIONS[role] : null;
-      
       if (destination) {
         router.push(destination);
-      } else {
-        // Fallback: redirect to home if role is unknown
-        router.push("/");
       }
     } else {
       // User is not authenticated - redirect to sign in page
