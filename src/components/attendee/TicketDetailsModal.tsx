@@ -36,6 +36,7 @@ export default function TicketDetailsModal({ isOpen, onClose, ticket }: TicketDe
   const [qrCode, setQrCode] = useState<QrCodeResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -68,6 +69,75 @@ export default function TicketDetailsModal({ isOpen, onClose, ticket }: TicketDe
   const qrValue = qrCode?.url ?? qrCode?.id ?? ticket.qr_code ?? ticket.qr_code_id ?? "inv";
 
   const eventDate = ticket.event_start_time ? new Date(ticket.event_start_time) : null;
+
+  const handleDownloadPdf = async () => {
+    setDownloading(true);
+    setError(null);
+    
+    let objectUrl: string | null = null;
+    
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
+      const response = await fetch(`/api/tickets/${ticket.id}/download`, {
+        method: "GET",
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        // Try to parse error response
+        const errorData = await response.json().catch(() => ({
+          message: `Failed to download ticket PDF (${response.status})`,
+        }));
+        throw new Error(errorData.message || `HTTP ${response.status}`);
+      }
+
+      // Get the PDF blob
+      const blob = await response.blob();
+
+      // Create a temporary download link
+      objectUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      
+      // Get filename from Content-Disposition header (backend sets this correctly)
+      const contentDisposition = response.headers.get("Content-Disposition");
+      let filename = `ticket-${ticket.id}.pdf`;
+      if (contentDisposition) {
+        // Try RFC 5987 encoded filename first
+        const encodedMatch = contentDisposition.match(/filename\*=UTF-8''(.+)/i);
+        if (encodedMatch) {
+          filename = decodeURIComponent(encodedMatch[1]);
+        } else {
+          // Fall back to basic filename
+          const filenameMatch = contentDisposition.match(/filename="([^"]+)"|filename=([^;]+)/);
+          if (filenameMatch) {
+            filename = (filenameMatch[1] || filenameMatch[2]).trim();
+          }
+        }
+      }
+      
+      link.download = filename;
+
+      // Trigger the download
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to download ticket PDF";
+      setError(errorMessage);
+      console.error("Error downloading ticket PDF:", err);
+    } finally {
+      // Clean up the URL object
+      if (objectUrl) {
+        window.URL.revokeObjectURL(objectUrl);
+      }
+      setDownloading(false);
+    }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -153,10 +223,20 @@ export default function TicketDetailsModal({ isOpen, onClose, ticket }: TicketDe
               <Button className="flex-1 bg-[var(--color-surface)] border border-[var(--color-border)] hover:bg-[var(--color-surface)]/80 text-white" variant="outline">
                 <Share2 className="w-4 h-4 mr-2" /> Share
               </Button>
-              <Button className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white border-none">
-                <Download className="w-4 h-4 mr-2" /> Save PDF
+              <Button 
+                onClick={handleDownloadPdf}
+                disabled={downloading}
+                className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white border-none disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Download className="w-4 h-4 mr-2" /> 
+                {downloading ? "Downloading..." : "Save PDF"}
               </Button>
             </div>
+            {error && (
+              <div className="text-red-400 text-sm text-center mt-2">
+                {error}
+              </div>
+            )}
 
           </div>
         </div>
