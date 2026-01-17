@@ -7,9 +7,14 @@ import { ValidationLog } from "../types";
 interface ScanHistoryProps {
     logs: ValidationLog[];
     isLoading: boolean;
+    eventId?: string;
 }
 
-export function ScanHistory({ logs, isLoading }: ScanHistoryProps) {
+export function ScanHistory({ logs, isLoading, eventId }: ScanHistoryProps) {
+    const logsUrl = eventId 
+        ? `/staff/validation-logs?eventId=${encodeURIComponent(eventId)}` 
+        : "/staff/validation-logs";
+
     return (
         <div className="rounded-2xl border border-white/5 bg-white/5 backdrop-blur-xl p-6 animate-in fade-in duration-700">
             <div className="flex items-center justify-between mb-4">
@@ -18,7 +23,7 @@ export function ScanHistory({ logs, isLoading }: ScanHistoryProps) {
                     <h3 className="text-lg font-semibold text-white">Recent Validations</h3>
                 </div>
                 <Link
-                    href="/staff/validation-logs"
+                    href={logsUrl}
                     className="text-sm text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1"
                 >
                     View All

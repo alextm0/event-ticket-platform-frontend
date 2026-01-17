@@ -149,6 +149,7 @@ export function StaffScanClient({ initialEvents, userId }: StaffScanClientProps)
                     <ScanHistory
                         logs={validator.recentLogs}
                         isLoading={false}
+                        eventId={eventId}
                     />
                 )}
 
