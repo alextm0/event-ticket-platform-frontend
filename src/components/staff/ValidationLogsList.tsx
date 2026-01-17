@@ -1,9 +1,43 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { CheckCircle2, XCircle, QrCode, Calendar } from "lucide-react";
+import { CheckCircle2, XCircle, QrCode, Calendar, AlertTriangle } from "lucide-react";
 import { TicketValidationLog } from "@/lib/backend-client";
 import { formatDistanceToNow, format } from "date-fns";
+
+// Helper to determine status - matches the logic from ScanHistory component EXACTLY
+function getValidationDisplayInfo(log: TicketValidationLog, currentEventId: string) {
+  const logIsValid = log.validationStatus === "VALID";
+  const isWrongEvent = log.ticketEventId && log.ticketEventId !== currentEventId;
+  // Logic mirrored from backend/client consistency - EXACT same as ScanHistory
+  const isDuplicate = !logIsValid && !isWrongEvent && log.ticketStatus === "CHECKED_IN";
+
+  if (logIsValid) {
+    return {
+      label: "Valid",
+      bgClass: "bg-emerald-500/20 text-emerald-400",
+      borderClass: "border-emerald-500/20 bg-emerald-500/5 hover:border-emerald-500/40",
+      iconBgClass: "bg-emerald-500/20 text-emerald-400 group-hover:bg-emerald-500/30",
+      Icon: CheckCircle2,
+    };
+  } else if (isDuplicate) {
+    return {
+      label: "Duplicate",
+      bgClass: "bg-yellow-500/20 text-yellow-400",
+      borderClass: "border-yellow-500/20 bg-yellow-500/5 hover:border-yellow-500/40",
+      iconBgClass: "bg-yellow-500/20 text-yellow-400 group-hover:bg-yellow-500/30",
+      Icon: AlertTriangle,
+    };
+  } else {
+    return {
+      label: "Invalid",
+      bgClass: "bg-red-500/20 text-red-400",
+      borderClass: "border-red-500/20 bg-red-500/5 hover:border-red-500/40",
+      iconBgClass: "bg-red-500/20 text-red-400 group-hover:bg-red-500/30",
+      Icon: XCircle,
+    };
+  }
+}
 import {
   Dialog,
   DialogContent,
@@ -130,56 +164,27 @@ export function ValidationLogsList({ eventId, eventName }: ValidationLogsListPro
 
         <div className="space-y-3">
           {logs.map((log) => {
-            const isValid = log.validationStatus === "VALID";
-            const isCheckedIn = log.ticketStatus === "CHECKED_IN";
-            const isDuplicate = !isValid && isCheckedIn;
+            const displayInfo = getValidationDisplayInfo(log, eventId);
             const validatedDate = new Date(log.validatedAt);
+            const Icon = displayInfo.Icon;
 
             return (
               <div
                 key={log.id}
                 onClick={() => setSelectedLog(log)}
-                className={`group cursor-pointer rounded-[var(--radius-lg)] border p-4 transition-all duration-200 hover:scale-[1.01] hover:shadow-lg ${isValid
-                  ? "border-emerald-500/20 bg-emerald-500/5 hover:border-emerald-500/40"
-                  : isDuplicate
-                    ? "border-yellow-500/20 bg-yellow-500/5 hover:border-yellow-500/40"
-                    : "border-red-500/20 bg-red-500/5 hover:border-red-500/40"
-                  }`}
+                className={`group cursor-pointer rounded-[var(--radius-lg)] border p-4 transition-all duration-200 hover:scale-[1.01] hover:shadow-lg ${displayInfo.borderClass}`}
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-start gap-3 flex-1">
-                    <div
-                      className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${isValid
-                        ? "bg-emerald-500/20 text-emerald-400 group-hover:bg-emerald-500/30"
-                        : isDuplicate
-                          ? "bg-yellow-500/20 text-yellow-400 group-hover:bg-yellow-500/30"
-                          : "bg-red-500/20 text-red-400 group-hover:bg-red-500/30"
-                        }`}
-                    >
-                      {isValid ? (
-                        <CheckCircle2 className="h-5 w-5" />
-                      ) : (
-                        <XCircle className="h-5 w-5" />
-                      )}
+                    <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${displayInfo.iconBgClass}`}>
+                      <Icon className="h-5 w-5" />
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span
-                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${isValid
-                            ? "bg-emerald-500/20 text-emerald-400"
-                            : isDuplicate
-                              ? "bg-yellow-500/20 text-yellow-400"
-                              : "bg-red-500/20 text-red-400"
-                            }`}
-                        >
-                          {isValid ? "Valid" : isDuplicate ? "Duplicate" : "Invalid"}
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${displayInfo.bgClass}`}>
+                          {displayInfo.label}
                         </span>
-                        {isCheckedIn && (
-                          <span className="inline-flex items-center rounded-full bg-blue-500/20 px-2 py-0.5 text-xs font-medium text-blue-400">
-                            Checked In
-                          </span>
-                        )}
                         <span className="inline-flex items-center rounded-full bg-slate-500/20 px-2 py-0.5 text-xs font-medium text-slate-400">
                           {log.validationMethod === "QR_SCAN" ? "QR Scan" : "Manual"}
                         </span>
@@ -217,21 +222,25 @@ export function ValidationLogsList({ eventId, eventName }: ValidationLogsListPro
           {selectedLog && (
             <div className="space-y-6">
               {/* Status Badge */}
-              <div className="flex justify-center py-4">
-                <div className={`rounded-full p-4 ${selectedLog.validationStatus === "VALID"
-                  ? "bg-emerald-500/20 text-emerald-400"
-                  : selectedLog.validationStatus === "INVALID" && selectedLog.ticketStatus === "CHECKED_IN"
-                    ? "bg-yellow-500/20 text-yellow-400"
-                    : "bg-red-500/20 text-red-400"
-                  }`}>
-                  {selectedLog.validationStatus === "VALID" ? <CheckCircle2 className="h-8 w-8" /> : <XCircle className="h-8 w-8" />}
-                </div>
-              </div>
+              {(() => {
+                const info = getValidationDisplayInfo(selectedLog, eventId);
+                const IconComponent = info.Icon;
+                return (
+                  <div className="flex flex-col items-center gap-2 py-4">
+                    <div className={`rounded-full p-4 ${info.bgClass}`}>
+                      <IconComponent className="h-8 w-8" />
+                    </div>
+                    <span className={`text-lg font-semibold ${info.bgClass.includes('emerald') ? 'text-emerald-400' : info.bgClass.includes('yellow') ? 'text-yellow-400' : 'text-red-400'}`}>
+                      {info.label}
+                    </span>
+                  </div>
+                );
+              })()}
 
               {/* Info Grid */}
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div className="space-y-1">
-                  <p className="text-slate-400 text-xs uppercase tracking-wider">Status</p>
+                  <p className="text-slate-400 text-xs uppercase tracking-wider">Validation Status</p>
                   <p className="font-medium">{selectedLog.validationStatus}</p>
                 </div>
                 <div className="space-y-1">

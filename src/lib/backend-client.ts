@@ -996,6 +996,7 @@ export interface TicketValidationLog {
   validationStatus: string;
   validationMethod: string;
   validatedAt: string;
+  ticketEventId?: string; // Optional field to check if ticket belongs to different event
 }
 
 export async function getValidationLogs(eventId: string): Promise<TicketValidationLog[]> {

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { ValidationLogsList } from "@/components/staff/ValidationLogsList";
 import {
   Select,
@@ -19,10 +20,25 @@ interface ValidationLogsClientProps {
 export function ValidationLogsClient({ initialEvents }: ValidationLogsClientProps) {
   // Ensure initialEvents is always an array
   const events = initialEvents || [];
+  const searchParams = useSearchParams();
+  const eventIdFromUrl = searchParams?.get("eventId");
 
-  const [selectedEventId, setSelectedEventId] = useState<string>(
-    events.length > 0 ? events[0].eventId : "",
-  );
+  // Use URL param if valid, otherwise fall back to first event
+  const getInitialEventId = () => {
+    if (eventIdFromUrl && events.some(e => e.eventId === eventIdFromUrl)) {
+      return eventIdFromUrl;
+    }
+    return events.length > 0 ? events[0].eventId : "";
+  };
+
+  const [selectedEventId, setSelectedEventId] = useState<string>(getInitialEventId());
+
+  // Update selection if URL param changes
+  useEffect(() => {
+    if (eventIdFromUrl && events.some(e => e.eventId === eventIdFromUrl)) {
+      setSelectedEventId(eventIdFromUrl);
+    }
+  }, [eventIdFromUrl, events]);
 
   const selectedEvent = events.find((e) => e.eventId === selectedEventId);
 
