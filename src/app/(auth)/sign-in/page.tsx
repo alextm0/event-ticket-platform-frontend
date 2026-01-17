@@ -5,6 +5,13 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { SESSION_UPDATED_EVENT } from "@/lib/session-events";
 
+const ROLE_DESTINATIONS: Record<string, string> = {
+  admin: "/admin",
+  organizer: "/organizer",
+  staff: "/staff",
+  attendee: "/my-tickets",
+};
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -60,7 +67,17 @@ export default function SignInPage() {
           window.dispatchEvent(new Event(SESSION_UPDATED_EVENT));
         }
 
-        router.push(next || "/");
+        // Redirect to the specified next page, or to role-based dashboard, or to onboarding if no role
+        if (next) {
+          router.push(next);
+        } else if (data.role) {
+          const role = data.role.toLowerCase();
+          const dashboardPath = ROLE_DESTINATIONS[role];
+          router.push(dashboardPath || "/onboarding");
+        } else {
+          // No role yet - redirect to onboarding
+          router.push("/onboarding");
+        }
       } else {
         let message = "Unexpected error, please try again later.";
         let details: string[] = [];

@@ -10,9 +10,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Separator } from "@/components/ui/separator"; // You might need to create this if it doesn't exist, or just use a div
-import { Calendar, Clock, MapPin, User, Download, Share2 } from "lucide-react";
+import { Calendar, Clock, MapPin, User, Download, Share2, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { shareTicket } from "@/lib/share-utils";
 
 type TicketDetailsModalProps = {
   isOpen: boolean;
@@ -37,6 +37,8 @@ export default function TicketDetailsModal({ isOpen, onClose, ticket }: TicketDe
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  const [shareSuccess, setShareSuccess] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -69,6 +71,27 @@ export default function TicketDetailsModal({ isOpen, onClose, ticket }: TicketDe
   const qrValue = qrCode?.url ?? qrCode?.id ?? ticket.qr_code ?? ticket.qr_code_id ?? "inv";
 
   const eventDate = ticket.event_start_time ? new Date(ticket.event_start_time) : null;
+
+  const handleShare = async () => {
+    setSharing(true);
+    setShareSuccess(false);
+    setError(null);
+
+    try {
+      const success = await shareTicket(ticket.id, ticket.event_title);
+      if (success) {
+        setShareSuccess(true);
+        setTimeout(() => setShareSuccess(false), 2000);
+      } else {
+        setError("Failed to share ticket");
+      }
+    } catch (err) {
+      setError("Failed to share ticket");
+      console.error("Error sharing ticket:", err);
+    } finally {
+      setSharing(false);
+    }
+  };
 
   const handleDownloadPdf = async () => {
     setDownloading(true);
@@ -220,8 +243,21 @@ export default function TicketDetailsModal({ isOpen, onClose, ticket }: TicketDe
             </div>
 
             <div className="flex gap-2 pt-2">
-              <Button className="flex-1 bg-[var(--color-surface)] border border-[var(--color-border)] hover:bg-[var(--color-surface)]/80 text-white" variant="outline">
-                <Share2 className="w-4 h-4 mr-2" /> Share
+              <Button 
+                onClick={handleShare}
+                disabled={sharing || shareSuccess}
+                className="flex-1 bg-[var(--color-surface)] border border-[var(--color-border)] hover:bg-[var(--color-surface)]/80 text-white disabled:opacity-50 disabled:cursor-not-allowed" 
+                variant="outline"
+              >
+                {shareSuccess ? (
+                  <>
+                    <Check className="w-4 h-4 mr-2" /> Copied!
+                  </>
+                ) : (
+                  <>
+                    <Share2 className="w-4 h-4 mr-2" /> {sharing ? "Sharing..." : "Share"}
+                  </>
+                )}
               </Button>
               <Button 
                 onClick={handleDownloadPdf}

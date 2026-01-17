@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, MapPin, Calendar, Clock, User, Share2, Users, FileText, BarChart3, Settings, Ticket } from "lucide-react";
+import { ArrowLeft, MapPin, Calendar, Clock, User, Share2, Users, FileText, BarChart3, Settings, Ticket, Check } from "lucide-react";
 import { GoogleMapEmbed } from "@/components/ui/google-map-embed";
 import { Button } from "@/components/ui/button";
 import { StaffManagement } from "@/components/organizer/StaffManagement";
@@ -13,6 +13,7 @@ import { OrganizerManagementBar } from "@/components/organizer/OrganizerManageme
 import { EventAnalytics } from "@/components/organizer/EventAnalytics";
 import { PublishedEvent, StaffMember, EventTicketType } from "@/types";
 import { cn } from "@/lib/utils";
+import { shareEvent } from "@/lib/share-utils";
 
 interface RawTicketType {
     id: string;
@@ -42,6 +43,25 @@ export function EventDetailsView({
     availableStaff
 }: EventDetailsViewProps) {
     const [activeTab, setActiveTab] = useState<"overview" | "staff" | "analytics" | "tickets">("overview");
+    const [sharing, setSharing] = useState(false);
+    const [shareSuccess, setShareSuccess] = useState(false);
+
+    const handleShareEvent = async () => {
+        setSharing(true);
+        setShareSuccess(false);
+
+        try {
+            const success = await shareEvent(event.id, event.title);
+            if (success) {
+                setShareSuccess(true);
+                setTimeout(() => setShareSuccess(false), 2000);
+            }
+        } catch (error) {
+            console.error("Error sharing event:", error);
+        } finally {
+            setSharing(false);
+        }
+    };
 
     // Normalize ticket types to camelCase (EventTicketType)
     const normalizedTicketTypes: EventTicketType[] = ticketTypes.map((t: any) => ({
@@ -251,8 +271,21 @@ export function EventDetailsView({
                                 </div>
                             </div>
 
-                            <Button variant="ghost" className="w-full justify-center gap-2 text-slate-400 hover:text-white hover:bg-white/5">
-                                <Share2 className="w-4 h-4" /> Share Event
+                            <Button 
+                                onClick={handleShareEvent}
+                                disabled={sharing || shareSuccess}
+                                variant="ghost" 
+                                className="w-full justify-center gap-2 text-slate-400 hover:text-white hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {shareSuccess ? (
+                                    <>
+                                        <Check className="w-4 h-4" /> Copied!
+                                    </>
+                                ) : (
+                                    <>
+                                        <Share2 className="w-4 h-4" /> {sharing ? "Sharing..." : "Share Event"}
+                                    </>
+                                )}
                             </Button>
                         </div>
                     </div>

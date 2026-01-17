@@ -6,6 +6,13 @@ import { useRouter } from "next/navigation";
 import type { AppRole } from "@/lib/user-profile";
 import { SESSION_UPDATED_EVENT } from "@/lib/session-events";
 
+const ROLE_DESTINATIONS: Record<string, string> = {
+  admin: "/admin",
+  organizer: "/organizer",
+  staff: "/staff",
+  attendee: "/my-tickets",
+};
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -69,11 +76,15 @@ export default function SignUpPage() {
           localStorage.setItem('authToken', data.token || 'mock-token');
           localStorage.setItem('userId', data.userId || data.id || email.split('@')[0] || 'user');
           localStorage.setItem('userEmail', data.email || email);
-          localStorage.setItem('userRole', data.role?.toLowerCase() || role);
+          const userRole = data.role?.toLowerCase() || role;
+          localStorage.setItem('userRole', userRole);
           window.dispatchEvent(new Event(SESSION_UPDATED_EVENT));
         }
 
-        router.push("/");
+        // Redirect to dashboard based on role
+        const userRole = data.role?.toLowerCase() || role;
+        const dashboardPath = ROLE_DESTINATIONS[userRole];
+        router.push(dashboardPath || "/");
       } else {
         let message = "Unexpected error, please try again later.";
         let details: string[] = [];
