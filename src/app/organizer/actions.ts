@@ -44,6 +44,7 @@ export async function deleteEventAction(eventId: string) {
         console.error("Failed to delete event", error);
         throw error;
     }
+    redirect("/organizer");
 }
 
 export async function updateEventAction(eventId: string, formData: FormData) {
