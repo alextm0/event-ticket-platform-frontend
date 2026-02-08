@@ -1,6 +1,7 @@
 import { requireRole } from "@/lib/auth-guards";
 import { redirectIfAuthError } from "@/lib/auth-error-handler";
 import { getEvents, getCurrentUserId } from "@/lib/backend-client";
+import type { Event } from "@/types";
 import OrganizerDashboardClient from "./OrganizerDashboardClient";
 
 export default async function OrganizerDashboard() {
@@ -11,9 +12,9 @@ export default async function OrganizerDashboard() {
     throw new Error("No user ID available for organizer.");
   }
 
-  let events;
+  let events: Event[] = [];
   try {
-    events = await getEvents({ organizerId });
+    events = (await getEvents({ organizerId })) ?? [];
   } catch (error) {
     redirectIfAuthError(error, "/organizer");
   }

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth-guards";
+import { redirectIfAuthError } from "@/lib/auth-error-handler";
 import { PageHeader } from "@/components/ui/page-header";
 import { getCurrentUserId, getStaffAssignedEvents } from "@/lib/backend-client";
 import { ValidationLogsClient } from "./ValidationLogsClient";
@@ -18,11 +19,11 @@ export default async function ValidationLogsPage() {
     const events = await getStaffAssignedEvents(userId);
     assignedEvents = events || [];
   } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error);
-    if (msg.includes("403") || msg.includes("401")) {
-      redirect("/sign-in?session_expired=1&next=/staff/validation-logs");
+    try {
+      redirectIfAuthError(error, "/staff/validation-logs");
+    } catch {
+      console.error("Failed to fetch assigned events for staff:", error);
     }
-    console.error("Failed to fetch assigned events for staff:", error);
   }
 
   return (
