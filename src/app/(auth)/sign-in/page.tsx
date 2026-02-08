@@ -1,7 +1,7 @@
 'use client';
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { SESSION_UPDATED_EVENT } from "@/lib/session-events";
 
@@ -33,6 +33,13 @@ export default function SignInPage() {
   const [errorDetails, setErrorDetails] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const next = searchParams?.get("next");
+  const sessionExpired = searchParams?.get("session_expired") === "1";
+
+  useEffect(() => {
+    if (sessionExpired) {
+      fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
+    }
+  }, [sessionExpired]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -124,6 +131,12 @@ export default function SignInPage() {
           Enter your credentials to access your account
         </p>
       </div>
+
+      {sessionExpired && (
+        <div className="rounded-md bg-amber-500/10 p-3 text-sm text-amber-200 border border-amber-500/20">
+          Your session has expired. Please sign in again.
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (

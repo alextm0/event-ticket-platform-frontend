@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth-guards";
 import { PageHeader } from "@/components/ui/page-header";
 import { getUserTickets } from "@/lib/backend-client";
@@ -14,7 +15,11 @@ export default async function MyTicketsPage() {
   let errorMsg: string | null = null;
   try {
     tickets = await getUserTickets();
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes("403") || msg.includes("401")) {
+      redirect("/sign-in?session_expired=1&next=/my-tickets");
+    }
     console.error("Failed to fetch tickets", err);
     errorMsg = "We couldn't load your tickets. Please try again later.";
   }

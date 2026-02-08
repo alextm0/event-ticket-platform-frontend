@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { DollarSign, Ticket, Calendar, TrendingUp, Users, ArrowUpRight, ArrowDownRight, AlertCircle, Loader2 } from "lucide-react";
+import React, { useState, useEffect, useMemo } from "react";
+import { DollarSign, Ticket, Calendar, TrendingUp, Loader2 } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { TicketType, PublishedEvent } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { fetchEventAnalytics } from "@/app/actions/analytics";
 import { format, differenceInDays, startOfDay } from "date-fns";
+import type { SalesHistoryItem, RecentOrder, OperationsMetrics } from "@/lib/backend-client";
 
 interface EventAnalyticsProps {
     eventId: string;
@@ -18,10 +19,9 @@ interface EventAnalyticsProps {
 }
 
 export function EventAnalytics({ eventId, ticketTypes, event }: EventAnalyticsProps) {
-    const [compareMode, setCompareMode] = useState(false);
-    const [salesHistory, setSalesHistory] = useState<any[]>([]);
-    const [recentOrders, setRecentOrders] = useState<any[]>([]);
-    const [operations, setOperations] = useState({ checkedInCount: 0, totalSold: 0, noShowRate: 0 });
+    const [salesHistory, setSalesHistory] = useState<SalesHistoryItem[]>([]);
+    const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
+    const [operations, setOperations] = useState<OperationsMetrics>({ checkedInCount: 0, totalSold: 0, noShowRate: 0 });
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -50,8 +50,8 @@ export function EventAnalytics({ eventId, ticketTypes, event }: EventAnalyticsPr
     const totalCapacity = ticketTypes.reduce((acc, t) => acc + t.totalQuantity, 0);
     const percentSold = totalCapacity > 0 ? Math.round((totalTicketsSold / totalCapacity) * 100) : 0;
 
-    const checkedInCount = operations.checkedInCount;
-    const noShowRate = operations.noShowRate;
+    const checkedInCount = operations.checkedInCount ?? 0;
+    const noShowRate = operations.noShowRate ?? 0;
 
     // Days Until Event Calculation
     const getDaysRemaining = () => {
@@ -70,28 +70,20 @@ export function EventAnalytics({ eventId, ticketTypes, event }: EventAnalyticsPr
 
     const daysInfo = getDaysRemaining();
 
-    const trendData = salesHistory;
+    // Use sales-history from API; if empty but we have sales, show a synthetic point so the chart isn't blank
+    const trendData = useMemo(() => {
+        if (salesHistory.length > 0) return salesHistory;
+        if (totalTicketsSold > 0 || totalRevenue > 0) {
+            const today = format(new Date(), "yyyy-MM-dd");
+            return [{ date: today, revenue: totalRevenue, sales: totalTicketsSold }];
+        }
+        return [];
+    }, [salesHistory, totalRevenue, totalTicketsSold]);
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
-            {/* Controls Row */}
-            <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-white">Event Performance</h2>
-                <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2 text-sm text-slate-400">
-                        <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                                type="checkbox"
-                                checked={compareMode}
-                                onChange={(e) => setCompareMode(e.target.checked)}
-                                className="rounded border-white/10 bg-white/5 text-emerald-500 focus:ring-emerald-500/50"
-                            />
-                            Compare to last event
-                        </label>
-                    </div>
-                </div>
-            </div>
+            <h2 className="text-xl font-bold text-white">Event Performance</h2>
 
             {/* Tier 1: The "Pulse" (Top Row) */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -99,28 +91,19 @@ export function EventAnalytics({ eventId, ticketTypes, event }: EventAnalyticsPr
                     title="Total Revenue"
                     value={`$${totalRevenue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                     subtext="Gross sales across all ticket types"
-                    trend="+0% vs last event"
-                    positive={true}
                     icon={<DollarSign className="w-6 h-6 text-emerald-400" />}
-                    compareMode={compareMode}
                 />
                 <PulseCard
                     title="Tickets Sold"
                     value={`${totalTicketsSold} / ${totalCapacity}`}
                     subtext={`${percentSold}% of total capacity filled`}
-                    trend="+0% vs last event"
-                    positive={true}
                     icon={<Ticket className="w-6 h-6 text-blue-400" />}
-                    compareMode={compareMode}
                 />
                 <PulseCard
                     title="Days Until Event"
                     value={daysInfo.value}
                     subtext={daysInfo.subtext}
-                    trend={daysInfo.value === "Completed" ? "Post-event" : "On track"}
-                    positive={true}
                     icon={<Calendar className="w-6 h-6 text-purple-400" />}
-                    compareMode={compareMode}
                 />
             </div>
 
@@ -153,7 +136,7 @@ export function EventAnalytics({ eventId, ticketTypes, event }: EventAnalyticsPr
 
                         <TabsContent value="revenue" className="h-[300px] w-full mt-0">
                             {trendData.length > 0 ? (
-                                <ResponsiveContainer width="100%" height="100%">
+                                <ResponsiveContainer width="100%" height={300} minHeight={300}>
                                     <AreaChart data={trendData}>
                                         <defs>
                                             <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
@@ -178,7 +161,7 @@ export function EventAnalytics({ eventId, ticketTypes, event }: EventAnalyticsPr
 
                         <TabsContent value="sales" className="h-[300px] w-full mt-0">
                             {trendData.length > 0 ? (
-                                <ResponsiveContainer width="100%" height="100%">
+                                <ResponsiveContainer width="100%" height={300} minHeight={300}>
                                     <AreaChart data={trendData}>
                                         <defs>
                                             <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
@@ -295,7 +278,7 @@ export function EventAnalytics({ eventId, ticketTypes, event }: EventAnalyticsPr
 
 // Sub-components
 
-function PulseCard({ title, value, subtext, trend, positive, icon, compareMode }: any) {
+function PulseCard({ title, value, subtext, icon }: { title: string; value: string; subtext: string; icon: React.ReactNode }) {
     return (
         <Card className="bg-[var(--color-surface)] border-white/10 shadow-lg hover:border-emerald-500/30 transition-all duration-300 group">
             <CardContent className="p-6">
@@ -303,12 +286,6 @@ function PulseCard({ title, value, subtext, trend, positive, icon, compareMode }
                     <div className="p-3 rounded-xl bg-white/5 group-hover:bg-white/10 transition-colors">
                         {icon}
                     </div>
-                    {compareMode && (
-                        <div className={`flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full ${positive ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
-                            {positive ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-                            {trend}
-                        </div>
-                    )}
                 </div>
                 <div>
                     <h3 className="text-3xl font-bold text-white mb-1">{value}</h3>

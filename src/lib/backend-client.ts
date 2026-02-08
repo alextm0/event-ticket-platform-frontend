@@ -1041,16 +1041,29 @@ export interface SalesHistoryItem {
   sales: number;
 }
 
+function normalizeSalesHistoryItem(raw: Record<string, unknown>): SalesHistoryItem {
+  const date = (raw.date ?? raw.saleDate ?? raw.sale_date ?? raw.day ?? "") as string;
+  const revenue = Number(raw.revenue ?? raw.totalRevenue ?? raw.total_revenue ?? 0);
+  const sales = Number(raw.sales ?? raw.ticketCount ?? raw.ticket_count ?? raw.quantity ?? 0);
+  return { date: String(date), revenue, sales };
+}
+
 export async function getEventSalesHistory(eventId: string): Promise<SalesHistoryItem[]> {
   const token = await getAuthToken();
   if (!token) throw new Error("No authentication token available.");
 
+  const userId = await getCurrentUserId();
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+  };
+  if (userId) {
+    headers["X-User-Id"] = userId;
+  }
+
   const response = await fetch(`${serverRuntimeConfig.backendApiUrl}/api/v1/events/${eventId}/analytics/sales-history`, {
     method: "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
+    headers,
     cache: "no-store",
   });
 
@@ -1060,7 +1073,14 @@ export async function getEventSalesHistory(eventId: string): Promise<SalesHistor
     throw new Error(`Failed to fetch sales history (${response.status}): ${body}`);
   }
 
-  return response.json();
+  const data = await response.json();
+  // DEBUG: log raw sales-history response from backend
+  console.log("[Analytics sales-history] eventId:", eventId, "raw response:", JSON.stringify(data, null, 2));
+
+  const items = Array.isArray(data) ? data : Array.isArray(data?.content) ? data.content : Array.isArray(data?.data) ? data.data : [];
+  const normalized = items.map((raw: Record<string, unknown>) => normalizeSalesHistoryItem(raw));
+  console.log("[Analytics sales-history] normalized:", JSON.stringify(normalized, null, 2));
+  return normalized;
 }
 
 export interface RecentOrder {
@@ -1075,12 +1095,18 @@ export async function getEventOrders(eventId: string): Promise<RecentOrder[]> {
   const token = await getAuthToken();
   if (!token) throw new Error("No authentication token available.");
 
+  const userId = await getCurrentUserId();
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+  };
+  if (userId) {
+    headers["X-User-Id"] = userId;
+  }
+
   const response = await fetch(`${serverRuntimeConfig.backendApiUrl}/api/v1/events/${eventId}/orders`, {
     method: "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
+    headers,
     cache: "no-store",
   });
 
@@ -1090,7 +1116,19 @@ export async function getEventOrders(eventId: string): Promise<RecentOrder[]> {
     throw new Error(`Failed to fetch event orders (${response.status}): ${body}`);
   }
 
-  return response.json();
+  const data = await response.json();
+
+  // Backend may return a Spring Data Page object: { content: [...] }
+  const items = Array.isArray(data) ? data : Array.isArray(data?.content) ? data.content : [];
+
+  // Normalize to UI-friendly shape expected by the dashboard.
+  return items.map((raw: any) => ({
+    id: raw.id ?? raw.orderId ?? "",
+    user: raw.user ?? raw.userName ?? raw.buyerName ?? raw.email ?? "Unknown",
+    ticket: raw.ticket ?? raw.ticketSummary ?? raw.ticketTypeName ?? "Ticket",
+    amount: Number(raw.amount ?? raw.totalAmount ?? raw.total ?? 0),
+    timestamp: raw.timestamp ?? raw.createdAt ?? raw.created_at ?? new Date().toISOString(),
+  }));
 }
 
 export interface OperationsMetrics {
@@ -1103,12 +1141,18 @@ export async function getEventOperationsMetrics(eventId: string): Promise<Operat
   const token = await getAuthToken();
   if (!token) throw new Error("No authentication token available.");
 
+  const userId = await getCurrentUserId();
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+  };
+  if (userId) {
+    headers["X-User-Id"] = userId;
+  }
+
   const response = await fetch(`${serverRuntimeConfig.backendApiUrl}/api/v1/events/${eventId}/analytics/operations`, {
     method: "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
+    headers,
     cache: "no-store",
   });
 

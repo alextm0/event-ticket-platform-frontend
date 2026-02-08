@@ -33,6 +33,11 @@ export interface EventTicketType {
   currency?: string;
   description?: string;
   eventId?: string;
+  /**
+   * Ratio of sold tickets to total capacity (0.0–1.0).
+   * Example: 1/1000 -> 0.001, 40/100 -> 0.4
+   */
+  soldRatio?: number;
 }
 
 export interface PublishedEvent {

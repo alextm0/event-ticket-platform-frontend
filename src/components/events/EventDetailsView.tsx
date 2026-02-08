@@ -75,6 +75,8 @@ export function EventDetailsView({
         soldCount: t.sold_count !== undefined ? t.sold_count : t.soldCount,
         active: t.active,
         eventId: t.event_id !== undefined ? t.event_id : t.eventId,
+        // New backend field: soldRatio (0.0–1.0)
+        soldRatio: t.soldRatio !== undefined ? t.soldRatio : t.sold_ratio,
     }));
 
     const startDate = new Date(event.startTime);

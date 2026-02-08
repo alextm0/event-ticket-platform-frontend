@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { getEvent } from "@/lib/backend-client";
 import { requireRole } from "@/lib/auth-guards";
 import EventForm from "@/components/organizer/EventForm";
@@ -18,6 +19,10 @@ export default async function EditEventPage({ params }: EditEventPageProps) {
     try {
         event = await getEvent(eventId);
     } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        if (msg.includes("403") || msg.includes("401")) {
+            redirect(`/sign-in?session_expired=1&next=/organizer/edit-event/${eventId}`);
+        }
         console.error("Failed to fetch event for editing", error);
         notFound();
     }

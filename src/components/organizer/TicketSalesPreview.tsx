@@ -19,8 +19,24 @@ export function TicketSalesPreview({ ticketTypes }: TicketSalesPreviewProps) {
             {ticketTypes.map((ticket) => {
                 const sold = ticket.soldCount || 0;
                 const total = ticket.totalQuantity;
-                const percentSold = total > 0 ? Math.round((sold / total) * 100) : 0;
+                // Prefer backend-provided soldRatio (0.0–1.0), fall back to local calculation.
+                const ratio =
+                    typeof ticket.soldRatio === "number" && !Number.isNaN(ticket.soldRatio)
+                        ? ticket.soldRatio
+                        : total > 0
+                            ? sold / total
+                            : 0;
+                const percentExact = ratio * 100;
+                const percentSoldRounded = Math.round(percentExact);
+                const percentLabel =
+                    sold > 0 && percentExact > 0 && percentExact < 1
+                        ? "<1%"
+                        : `${percentSoldRounded}%`;
                 const remaining = total - sold;
+
+                // Make very small sales still visually noticeable in the bar.
+                const barPercent =
+                    sold > 0 && percentExact > 0 && percentExact < 1 ? 1 : percentExact;
 
                 return (
                     <div key={ticket.id} className="space-y-2">
@@ -38,13 +54,13 @@ export function TicketSalesPreview({ ticketTypes }: TicketSalesPreviewProps) {
                         <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
                             <div
                                 className="h-full bg-emerald-500 rounded-full transition-all duration-500 ease-out"
-                                style={{ width: `${percentSold}%` }}
+                                style={{ width: `${barPercent}%` }}
                             />
                         </div>
 
                         {/* Bottom Line: Caption */}
                         <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
-                            <span>{percentSold}% sold</span>
+                            <span>{percentLabel} sold</span>
                             <span>{remaining} remaining</span>
                         </div>
                     </div>

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { Calendar, MapPin, Clock, ArrowLeft, User, Share2 } from "lucide-react";
 
@@ -20,8 +20,14 @@ interface EventDetailsPageProps {
   }>;
 }
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export default async function EventDetailsPage({ params }: EventDetailsPageProps) {
   const { eventId } = await params;
+
+  if (!UUID_REGEX.test(eventId)) {
+    notFound();
+  }
 
   try {
     let event: PublishedEvent;
@@ -84,6 +90,10 @@ export default async function EventDetailsPage({ params }: EventDetailsPageProps
       </div>
     );
   } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    if (msg.includes("403") || msg.includes("401")) {
+      redirect(`/sign-in?session_expired=1&next=/events/${eventId}`);
+    }
     console.error(error);
     notFound();
   }

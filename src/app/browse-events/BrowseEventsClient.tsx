@@ -4,8 +4,21 @@ import { useState, useMemo } from "react";
 import { PublishedEvent } from "@/types";
 import { EventCard } from "@/components/events/EventCard";
 import { Input } from "@/components/ui/input";
-import { Search, Calendar, MapPin } from "lucide-react";
+import { Search, Calendar } from "lucide-react";
+import { DateFilterInput } from "@/components/ui/date-filter-input";
 import { Button } from "@/components/ui/button";
+import { parse } from "date-fns";
+
+function parseDateDMY(value: string): Date | null {
+    if (!value?.trim()) return null;
+    const normalized = value.trim().replace(/\//g, ".");
+    try {
+        const d = parse(normalized, "d.M.yyyy", new Date());
+        return isNaN(d.getTime()) ? null : d;
+    } catch {
+        return null;
+    }
+}
 
 interface BrowseEventsClientProps {
     initialEvents: PublishedEvent[];
@@ -14,6 +27,8 @@ interface BrowseEventsClientProps {
 export default function BrowseEventsClient({ initialEvents }: BrowseEventsClientProps) {
     const [searchQuery, setSearchQuery] = useState("");
     const [filter, setFilter] = useState<"all" | "upcoming" | "past">("all");
+    const [startDate, setStartDate] = useState("");
+    const [endDate, setEndDate] = useState("");
 
     const filteredEvents = useMemo(() => {
         return initialEvents.filter((event) => {
@@ -23,9 +38,10 @@ export default function BrowseEventsClient({ initialEvents }: BrowseEventsClient
                 event.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 event.location.toLowerCase().includes(searchQuery.toLowerCase());
 
-            // Date filter
+            // Date filter: All / Upcoming / Past
             const eventDate = new Date(event.startTime);
             const now = new Date();
+            now.setHours(0, 0, 0, 0);
             let matchesDate = true;
 
             if (filter === "upcoming") {
@@ -34,15 +50,43 @@ export default function BrowseEventsClient({ initialEvents }: BrowseEventsClient
                 matchesDate = eventDate < now;
             }
 
+            // Filter by start date: event starts on or after this date
+            const filterStart = parseDateDMY(startDate);
+            if (filterStart) {
+                const start = new Date(filterStart);
+                start.setHours(0, 0, 0, 0);
+                const eventStartDay = new Date(eventDate);
+                eventStartDay.setHours(0, 0, 0, 0);
+                matchesDate = matchesDate && eventStartDay >= start;
+            }
+
+            // Filter by end date: event ends on or before this date
+            const filterEnd = parseDateDMY(endDate);
+            if (filterEnd) {
+                const end = new Date(filterEnd);
+                end.setHours(23, 59, 59, 999);
+                const eventEnd = new Date(event.endTime);
+                matchesDate = matchesDate && eventEnd <= end;
+            }
+
             return matchesSearch && matchesDate;
         });
-    }, [initialEvents, searchQuery, filter]);
+    }, [initialEvents, searchQuery, filter, startDate, endDate]);
+
+    const hasActiveFilters = searchQuery.trim() || filter !== "all" || startDate || endDate;
+
+    const clearFilters = () => {
+        setSearchQuery("");
+        setFilter("all");
+        setStartDate("");
+        setEndDate("");
+    };
 
     return (
         <div className="space-y-8">
             {/* Search and Filters */}
-            <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white/5 p-4 rounded-2xl border border-white/10 backdrop-blur-sm">
-                <div className="relative w-full md:w-96">
+            <div className="flex flex-wrap gap-4 items-center p-4 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm">
+                <div className="relative w-full md:w-80 shrink-0">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                     <Input
                         placeholder="Search events, locations..."
@@ -51,8 +95,7 @@ export default function BrowseEventsClient({ initialEvents }: BrowseEventsClient
                         className="pl-10 bg-black/20 border-white/10 text-white placeholder:text-slate-500 focus:border-emerald-500/50"
                     />
                 </div>
-
-                <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
+                <div className="flex items-center gap-2 flex-wrap">
                     <Button
                         variant={filter === "all" ? "mint" : "outline"}
                         size="sm"
@@ -69,8 +112,27 @@ export default function BrowseEventsClient({ initialEvents }: BrowseEventsClient
                     >
                         Upcoming
                     </Button>
-                    {/* Only show Past option if there are past events to save space if not needed? No, standard filter is better. */}
+                    <Button
+                        variant={filter === "past" ? "mint" : "outline"}
+                        size="sm"
+                        onClick={() => setFilter("past")}
+                        className={filter !== "past" ? "bg-transparent border-white/10 text-slate-300 hover:text-white" : ""}
+                    >
+                        Past
+                    </Button>
                 </div>
+                <div className="flex items-center gap-2 flex-wrap border-l border-white/10 pl-4">
+                    <Calendar className="h-4 w-4 text-slate-400 shrink-0" />
+                    <span className="text-sm text-slate-400 shrink-0">Start:</span>
+                    <DateFilterInput value={startDate} onChange={setStartDate} placeholder="e.g. 2.7.2026" />
+                    <span className="text-sm text-slate-400 shrink-0">End:</span>
+                    <DateFilterInput value={endDate} onChange={setEndDate} placeholder="e.g. 15.7.2026" />
+                </div>
+                {hasActiveFilters && (
+                    <Button variant="link" size="sm" className="text-emerald-400 shrink-0" onClick={clearFilters}>
+                        Clear filters
+                    </Button>
+                )}
             </div>
 
             {/* Results Grid */}
@@ -83,11 +145,7 @@ export default function BrowseEventsClient({ initialEvents }: BrowseEventsClient
                     <p className="text-slate-400 max-w-md">
                         We couldn't find any events matching your search criteria. Try adjusting your filters or search terms.
                     </p>
-                    <Button
-                        variant="link"
-                        className="text-emerald-400 mt-4"
-                        onClick={() => { setSearchQuery(""); setFilter("all"); }}
-                    >
+                    <Button variant="link" className="text-emerald-400 mt-4" onClick={clearFilters}>
                         Clear all filters
                     </Button>
                 </div>
