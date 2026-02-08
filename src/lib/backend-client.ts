@@ -1074,12 +1074,9 @@ export async function getEventSalesHistory(eventId: string): Promise<SalesHistor
   }
 
   const data = await response.json();
-  // DEBUG: log raw sales-history response from backend
-  console.log("[Analytics sales-history] eventId:", eventId, "raw response:", JSON.stringify(data, null, 2));
 
   const items = Array.isArray(data) ? data : Array.isArray(data?.content) ? data.content : Array.isArray(data?.data) ? data.data : [];
   const normalized = items.map((raw: Record<string, unknown>) => normalizeSalesHistoryItem(raw));
-  console.log("[Analytics sales-history] normalized:", JSON.stringify(normalized, null, 2));
   return normalized;
 }
 
