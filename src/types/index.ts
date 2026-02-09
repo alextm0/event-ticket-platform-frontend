@@ -49,6 +49,8 @@ export interface PublishedEvent {
   endTime: string;
   status: string;
   organizerName?: string;
+  /** Organizer user id; used to show organizer-only UI when current user is this event's organizer */
+  organizerId?: string;
   ticketTypes: PublishedEventTicketType[];
 }
 
