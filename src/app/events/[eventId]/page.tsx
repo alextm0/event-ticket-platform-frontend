@@ -1,9 +1,8 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { cookies } from "next/headers";
+import { notFound, redirect } from "next/navigation";
 import { Calendar, MapPin, Clock, ArrowLeft, User, Share2 } from "lucide-react";
 
-import { getPublishedEvent, getEvent, getEventTicketTypes } from "@/lib/backend-client";
+import { getPublishedEvent, getEvent, getEventTicketTypes, getCurrentUserId } from "@/lib/backend-client";
 import { TicketTypeList } from "@/components/events/TicketTypeList";
 import { PublishedEvent } from "@/types";
 
@@ -20,8 +19,14 @@ interface EventDetailsPageProps {
   }>;
 }
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export default async function EventDetailsPage({ params }: EventDetailsPageProps) {
   const { eventId } = await params;
+
+  if (!UUID_REGEX.test(eventId)) {
+    notFound();
+  }
 
   try {
     let event: PublishedEvent;
@@ -49,14 +54,14 @@ export default async function EventDetailsPage({ params }: EventDetailsPageProps
       });
     }
 
-    const cookieStore = await cookies();
-    const userRole = cookieStore.get("userRole")?.value;
-    const isOrganizer = userRole === "organizer";
+    const currentUserId = await getCurrentUserId();
+    const eventOrganizerId = event.organizerId ?? (event as { organizer?: { id: string } }).organizer?.id;
+    const isOrganizerOfThisEvent = Boolean(currentUserId && eventOrganizerId && currentUserId === eventOrganizerId);
 
-    // Staff management data (only for organizers)
+    // Staff management data (only for this event's organizer)
     let assignedStaff: Array<{ id: string; email: string; name: string; role: string }> = [];
     let availableStaff: Array<{ id: string; email: string; name: string; role: string }> = [];
-    if (isOrganizer) {
+    if (isOrganizerOfThisEvent) {
       try {
         const [assigned, available] = await Promise.all([
           getEventStaffMembers(eventId),
@@ -77,13 +82,17 @@ export default async function EventDetailsPage({ params }: EventDetailsPageProps
         <EventDetailsView
           event={event}
           ticketTypes={ticketTypes}
-          isOrganizer={isOrganizer}
+          isOrganizer={isOrganizerOfThisEvent}
           assignedStaff={assignedStaff}
           availableStaff={availableStaff}
         />
       </div>
     );
   } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    if (msg.includes("403") || msg.includes("401")) {
+      redirect(`/sign-in?session_expired=1&next=/events/${eventId}`);
+    }
     console.error(error);
     notFound();
   }

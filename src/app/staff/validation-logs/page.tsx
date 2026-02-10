@@ -1,10 +1,10 @@
+import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth-guards";
+import { redirectIfAuthError } from "@/lib/auth-error-handler";
 import { PageHeader } from "@/components/ui/page-header";
 import { getCurrentUserId, getStaffAssignedEvents } from "@/lib/backend-client";
 import { ValidationLogsClient } from "./ValidationLogsClient";
 import { Shield } from "lucide-react";
-
-import { redirect } from "next/navigation";
 
 export default async function ValidationLogsPage() {
   await requireRole("staff", { allowGrant: false });
@@ -17,10 +17,13 @@ export default async function ValidationLogsPage() {
   let assignedEvents: Array<{ eventId: string; eventName: string }> = [];
   try {
     const events = await getStaffAssignedEvents(userId);
-    assignedEvents = events || []; // Ensure it's always an array
+    assignedEvents = events || [];
   } catch (error) {
-    console.error("Failed to fetch assigned events for staff:", error);
-    // assignedEvents remains as empty array
+    try {
+      redirectIfAuthError(error, "/staff/validation-logs");
+    } catch {
+      console.error("Failed to fetch assigned events for staff:", error);
+    }
   }
 
   return (

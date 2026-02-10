@@ -1,12 +1,25 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { parse } from "date-fns";
 import type Ticket from "@/types/ticket-model";
 import TicketCard from "./TicketCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
-import { Ticket as TicketIcon, AlertCircle, Search, X } from "lucide-react";
+import { Ticket as TicketIcon, AlertCircle, Search, X, Calendar } from "lucide-react";
+import { DateFilterInput } from "@/components/ui/date-filter-input";
+
+function parseDateDMY(value: string): Date | null {
+  if (!value?.trim()) return null;
+  const normalized = value.trim().replace(/\//g, ".");
+  try {
+    const d = parse(normalized, "d.M.yyyy", new Date());
+    return isNaN(d.getTime()) ? null : d;
+  } catch {
+    return null;
+  }
+}
 
 interface MyTicketsListProps {
   tickets: Ticket[];
@@ -16,6 +29,8 @@ interface MyTicketsListProps {
 export default function MyTicketsList({ tickets, error }: MyTicketsListProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState<"all" | "upcoming" | "past">("all");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   const { upcomingEvents, pastEvents, filteredUpcoming, filteredPast } = useMemo(() => {
     const now = new Date();
@@ -69,13 +84,46 @@ export default function MyTicketsList({ tickets, error }: MyTicketsListProps) {
       );
     };
 
+    // Apply date filter (event start/end)
+    const filterByDate = (ticketList: Ticket[]) => {
+      let list = ticketList;
+      const filterStart = parseDateDMY(startDate);
+      if (filterStart) {
+        const start = new Date(filterStart);
+        start.setHours(0, 0, 0, 0);
+        list = list.filter((t) => {
+          const eventStart = t.event_start_time ? new Date(t.event_start_time) : null;
+          if (!eventStart) return false;
+          const eventStartDay = new Date(eventStart);
+          eventStartDay.setHours(0, 0, 0, 0);
+          return eventStartDay >= start;
+        });
+      }
+      const filterEnd = parseDateDMY(endDate);
+      if (filterEnd) {
+        const end = new Date(filterEnd);
+        end.setHours(23, 59, 59, 999);
+        list = list.filter((t) => {
+          const eventEnd = t.event_end_time ? new Date(t.event_end_time) : t.event_start_time ? new Date(t.event_start_time) : null;
+          if (!eventEnd) return false;
+          return eventEnd <= end;
+        });
+      }
+      return list;
+    };
+
+    const searchFilteredUpcoming = filterTickets(upcoming);
+    const searchFilteredPast = filterTickets(past);
+    const dateFilteredUpcoming = filterByDate(searchFilteredUpcoming);
+    const dateFilteredPast = filterByDate(searchFilteredPast);
+
     return {
       upcomingEvents: upcoming,
       pastEvents: past,
-      filteredUpcoming: filterTickets(upcoming),
-      filteredPast: filterTickets(past),
+      filteredUpcoming: dateFilteredUpcoming,
+      filteredPast: dateFilteredPast,
     };
-  }, [tickets, searchQuery]);
+  }, [tickets, searchQuery, startDate, endDate]);
 
   if (error) {
     return (
@@ -116,13 +164,21 @@ export default function MyTicketsList({ tickets, error }: MyTicketsListProps) {
   const showPast = filter === "all" || filter === "past";
   const displayedUpcoming = showUpcoming ? filteredUpcoming : [];
   const displayedPast = showPast ? filteredPast : [];
-  const hasNoResults = displayedUpcoming.length === 0 && displayedPast.length === 0 && searchQuery.trim() !== "";
+  const hasActiveFilters = searchQuery.trim() || filter !== "all" || startDate || endDate;
+  const hasNoResults = displayedUpcoming.length === 0 && displayedPast.length === 0 && hasActiveFilters;
+
+  const clearFilters = () => {
+    setSearchQuery("");
+    setFilter("all");
+    setStartDate("");
+    setEndDate("");
+  };
 
   return (
     <div className="space-y-8">
       {/* Search and Filter Bar */}
-      <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white/5 p-4 rounded-2xl border border-white/10 backdrop-blur-sm animate-in fade-in slide-in-from-bottom-2 duration-500">
-        <div className="relative w-full md:w-96">
+      <div className="flex flex-wrap gap-4 items-center bg-white/5 p-4 rounded-2xl border border-white/10 backdrop-blur-sm animate-in fade-in slide-in-from-bottom-2 duration-500">
+        <div className="relative w-full md:w-80 shrink-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <Input
             placeholder="Search by event, location, ticket type..."
@@ -139,8 +195,7 @@ export default function MyTicketsList({ tickets, error }: MyTicketsListProps) {
             </button>
           )}
         </div>
-
-        <div className="flex items-center gap-2 w-full md:w-auto">
+        <div className="flex items-center gap-2 flex-wrap">
           <Button
             variant={filter === "all" ? "mint" : "outline"}
             size="sm"
@@ -166,6 +221,18 @@ export default function MyTicketsList({ tickets, error }: MyTicketsListProps) {
             Past ({pastEvents.length})
           </Button>
         </div>
+        <div className="flex items-center gap-2 flex-wrap border-l border-white/10 pl-4">
+          <Calendar className="h-4 w-4 text-slate-400 shrink-0" />
+          <span className="text-sm text-slate-400 shrink-0">Start:</span>
+          <DateFilterInput value={startDate} onChange={setStartDate} placeholder="e.g. 2.7.2026" />
+          <span className="text-sm text-slate-400 shrink-0">End:</span>
+          <DateFilterInput value={endDate} onChange={setEndDate} placeholder="e.g. 15.7.2026" />
+        </div>
+        {hasActiveFilters && (
+          <Button variant="link" size="sm" className="text-emerald-400 shrink-0" onClick={clearFilters}>
+            Clear filters
+          </Button>
+        )}
       </div>
 
       {/* No Results State */}
@@ -174,14 +241,14 @@ export default function MyTicketsList({ tickets, error }: MyTicketsListProps) {
           <Search className="h-12 w-12 text-slate-600 mb-4" />
           <h3 className="text-lg font-semibold text-white mb-2">No tickets found</h3>
           <p className="text-slate-400 mb-4">
-            No tickets match "{searchQuery}"
+            No tickets match your filters.
           </p>
           <Button
             variant="outline"
-            onClick={() => setSearchQuery("")}
+            onClick={clearFilters}
             className="border-white/10 hover:bg-white/5"
           >
-            Clear search
+            Clear filters
           </Button>
         </div>
       )}

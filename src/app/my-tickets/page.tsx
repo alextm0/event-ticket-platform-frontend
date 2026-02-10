@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireRole } from "@/lib/auth-guards";
+import { redirectIfAuthError } from "@/lib/auth-error-handler";
 import { PageHeader } from "@/components/ui/page-header";
 import { getUserTickets } from "@/lib/backend-client";
 import Ticket from "@/types/ticket-model";
@@ -14,9 +15,13 @@ export default async function MyTicketsPage() {
   let errorMsg: string | null = null;
   try {
     tickets = await getUserTickets();
-  } catch (err: any) {
-    console.error("Failed to fetch tickets", err);
-    errorMsg = "We couldn't load your tickets. Please try again later.";
+  } catch (err: unknown) {
+    try {
+      redirectIfAuthError(err, "/my-tickets");
+    } catch {
+      console.error("Failed to fetch tickets", err);
+      errorMsg = "We couldn't load your tickets. Please try again later.";
+    }
   }
 
   return (

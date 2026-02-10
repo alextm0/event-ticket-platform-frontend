@@ -92,9 +92,18 @@ export function TicketTypeManagement({
                     {ticketTypes.map((ticketType) => {
                         const remaining = remainingQuantity(ticketType);
                         const isSoldOut = remaining <= 0;
-                        const percentSold = ticketType.totalQuantity > 0
-                            ? Math.min(100, Math.round((ticketType.soldCount / ticketType.totalQuantity) * 100))
-                            : 0;
+                        const sold = ticketType.soldCount || 0;
+                        const total = ticketType.totalQuantity;
+                        const ratio =
+                            typeof ticketType.soldRatio === "number" && !Number.isNaN(ticketType.soldRatio)
+                                ? ticketType.soldRatio
+                                : total > 0 ? sold / total : 0;
+                        const percentExact = Math.min(100, ratio * 100);
+                        const percentLabel =
+                            sold > 0 && percentExact > 0 && percentExact < 1
+                                ? "<1%"
+                                : `${Math.round(percentExact)}%`;
+                        const barPercent = sold > 0 && percentExact > 0 && percentExact < 1 ? 1 : percentExact;
 
                         return (
                             <div
@@ -129,7 +138,7 @@ export function TicketTypeManagement({
                                 <div className="w-full md:w-64 shrink-0">
                                     <div className="flex justify-between text-xs font-medium mb-2">
                                         <span className={isSoldOut ? "text-red-400" : "text-emerald-400"}>
-                                            {isSoldOut ? "Sold Out" : `${percentSold}% Sold`}
+                                            {isSoldOut ? "Sold Out" : `${percentLabel} Sold`}
                                         </span>
                                         <span className="text-slate-400">
                                             {ticketType.soldCount} of {ticketType.totalQuantity}
@@ -138,7 +147,7 @@ export function TicketTypeManagement({
                                     <div className="h-2.5 w-full rounded-full bg-black/20 overflow-hidden ring-1 ring-white/5">
                                         <div
                                             className={`h-full rounded-full transition-all duration-500 ${isSoldOut ? 'bg-red-500' : 'bg-emerald-500'}`}
-                                            style={{ width: `${percentSold}%` }}
+                                            style={{ width: `${barPercent}%` }}
                                         />
                                     </div>
                                 </div>
