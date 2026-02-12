@@ -1,29 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { format, parse } from "date-fns";
+import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { parseDateDMY } from "@/lib/utils";
 
 interface DateFilterInputProps {
     value: string;
     onChange: (value: string) => void;
     placeholder?: string;
     className?: string;
-}
-
-function parseDateDMY(value: string): Date | null {
-    if (!value?.trim()) return null;
-    const normalized = value.trim().replace(/\//g, ".");
-    try {
-        const d = parse(normalized, "d.M.yyyy", new Date());
-        return isNaN(d.getTime()) ? null : d;
-    } catch {
-        return null;
-    }
 }
 
 export function DateFilterInput({ value, onChange, placeholder = "e.g. 2.7.2026", className }: DateFilterInputProps) {

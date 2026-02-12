@@ -2,7 +2,6 @@
 
 import PurchaseTicketButton from "./PurchaseTicketButton";
 
-// Initial type definition based on usage in page.tsx
 interface TicketType {
     id: string;
     name: string;
