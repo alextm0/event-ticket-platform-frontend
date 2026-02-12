@@ -3,7 +3,7 @@ import { requireRole } from "@/lib/auth-guards";
 import { redirectIfAuthError } from "@/lib/auth-error-handler";
 import { PageHeader } from "@/components/ui/page-header";
 import { getUserTickets } from "@/lib/backend-client";
-import Ticket from "@/types/ticket-model";
+import type { Ticket } from "@/types";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import MyTicketsList from "@/components/attendee/MyTicketsList";

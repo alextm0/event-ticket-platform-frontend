@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { successResponse, handleRouteError } from "@/lib/api-response";
 
 export async function POST() {
     try {
@@ -24,12 +25,8 @@ export async function POST() {
         cookieStore.delete("userEmail");
         cookieStore.delete("userRole");
 
-        return NextResponse.json({ message: "Logged out successfully" });
+        return successResponse({ message: "Logged out successfully" });
     } catch (error) {
-        console.error("Logout error:", error);
-        return NextResponse.json(
-            { message: "An error occurred during logout" },
-            { status: 500 }
-        );
+        return handleRouteError(error, "Logout error");
     }
 }

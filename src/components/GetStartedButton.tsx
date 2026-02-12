@@ -4,13 +4,8 @@ import { useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { isClientAuthenticated, getClientUserRole } from "@/lib/client-auth";
-
-const ROLE_DESTINATIONS: Record<string, string> = {
-  admin: "/admin",
-  organizer: "/organizer",
-  staff: "/staff",
-  attendee: "/my-tickets",
-};
+import { ROLE_DESTINATIONS } from "@/constants/roles";
+import type { AppRole } from "@/lib/user-profile";
 
 export function GetStartedButton() {
   const router = useRouter();
@@ -20,7 +15,7 @@ export function GetStartedButton() {
     
     if (isClientAuthenticated()) {
       // User is authenticated - redirect to their role dashboard
-      const role = getClientUserRole();
+      const role = getClientUserRole() as AppRole | null | undefined;
       const destination = role ? ROLE_DESTINATIONS[role] : null;
       if (destination) {
         router.push(destination);

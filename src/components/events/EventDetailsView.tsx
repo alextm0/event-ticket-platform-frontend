@@ -3,33 +3,21 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, MapPin, Calendar, Clock, User, Share2, Users, FileText, BarChart3, Settings, Ticket, Check } from "lucide-react";
-import { GoogleMapEmbed } from "@/components/ui/google-map-embed";
 import { Button } from "@/components/ui/button";
-import { StaffManagement } from "@/components/organizer/StaffManagement";
-import { TicketTypeList } from "@/components/events/TicketTypeList";
-import { TicketTypeManagementWrapper } from "@/components/organizer/TicketTypeManagementWrapper";
 import { TicketSalesPreview } from "@/components/organizer/TicketSalesPreview";
 import { OrganizerManagementBar } from "@/components/organizer/OrganizerManagementBar";
-import { EventAnalytics } from "@/components/organizer/EventAnalytics";
-import { PublishedEvent, StaffMember, EventTicketType } from "@/types";
+import { PublishedEvent, StaffMember, EventTicketType, normalizeTicketType, type RawTicketType } from "@/types";
 import { cn } from "@/lib/utils";
 import { shareEvent } from "@/lib/share-utils";
-
-interface RawTicketType {
-    id: string;
-    name: string;
-    description?: string;
-    price: number;
-    currency?: string;
-    total_quantity: number;
-    sold_count: number;
-    active: boolean;
-    event_id?: string;
-}
+import { TicketTypeList } from "@/components/events/TicketTypeList";
+import { OverviewTab } from "@/components/events/tabs/OverviewTab";
+import { StaffTab } from "@/components/events/tabs/StaffTab";
+import { TicketsTab } from "@/components/events/tabs/TicketsTab";
+import { AnalyticsTab } from "@/components/events/tabs/AnalyticsTab";
 
 interface EventDetailsViewProps {
     event: PublishedEvent;
-    ticketTypes: RawTicketType[] | EventTicketType[]; // Accept both for flexibility during migration
+    ticketTypes: RawTicketType[] | EventTicketType[];
     isOrganizer: boolean;
     assignedStaff: StaffMember[];
     availableStaff: StaffMember[];
@@ -63,23 +51,10 @@ export function EventDetailsView({
         }
     };
 
-    // Normalize ticket types to camelCase (EventTicketType)
-    const normalizedTicketTypes: EventTicketType[] = ticketTypes.map((t: any) => ({
-        id: t.id,
-        name: t.name,
-        description: t.description,
-        price: t.price,
-        currency: t.currency,
-        // Map snake_case to camelCase, fallback to camelCase if already normalized
-        totalQuantity: t.total_quantity !== undefined ? t.total_quantity : t.totalQuantity,
-        soldCount: t.sold_count !== undefined ? t.sold_count : t.soldCount,
-        active: t.active,
-        eventId: t.event_id !== undefined ? t.event_id : t.eventId,
-        // New backend field: soldRatio (0.0–1.0)
-        soldRatio: t.soldRatio !== undefined ? t.soldRatio : t.sold_ratio,
-    }));
+    const normalizedTicketTypes: EventTicketType[] = ticketTypes.map((t) =>
+        normalizeTicketType(t as RawTicketType),
+    );
 
-    const startDate = new Date(event.startTime);
     const coverImage = "https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?q=80&w=2074&auto=format&fit=crop";
 
     return (
@@ -112,21 +87,7 @@ export function EventDetailsView({
                         {event.title}
                     </h1>
 
-                    <div className="flex flex-col md:flex-row md:items-center gap-6 text-slate-300">
-                        <div className="flex items-center gap-2">
-                            <Calendar className="w-5 h-5 text-emerald-400" />
-                            <span className="text-lg font-medium">
-                                {startDate.toLocaleDateString("en-US", { weekday: 'long', month: 'long', day: 'numeric' })}
-                            </span>
-                        </div>
-                        <div className="hidden md:block w-px h-6 bg-white/20" />
-                        <div className="flex items-center gap-2">
-                            <Clock className="w-5 h-5 text-emerald-400" />
-                            <span className="text-lg font-medium">
-                                {startDate.toLocaleTimeString("en-US", { hour: 'numeric', minute: '2-digit' })}
-                            </span>
-                        </div>
-                    </div>
+                    <DateRow event={event} />
                 </div>
             </div>
 
@@ -174,73 +135,27 @@ export function EventDetailsView({
                             )}
                         </div>
 
-                        {/* Tab Content: Overview */}
-                        {activeTab === "overview" && (
-                            <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                {/* Description */}
-                                <section className="space-y-4">
-                                    <h3 className="text-2xl font-bold text-white">About this Event</h3>
-                                    <div className="prose prose-invert prose-lg max-w-none text-slate-300">
-                                        <p className="whitespace-pre-wrap">{event.description}</p>
-                                    </div>
-                                </section>
+                        {/* Tab Content */}
+                        {activeTab === "overview" && <OverviewTab event={event} />}
 
-                                {/* Host Info */}
-                                <section className="flex items-center gap-4 bg-[var(--color-surface)]/50 p-6 rounded-xl border border-white/5">
-                                    <div className="h-12 w-12 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold text-xl shadow-lg ring-2 ring-black/20">
-                                        {event.organizerName?.charAt(0) ?? "O"}
-                                    </div>
-                                    <div>
-                                        <p className="text-sm text-slate-400 font-medium uppercase tracking-wider">Hosted by</p>
-                                        <p className="text-white font-bold text-lg">{event.organizerName ?? "Event Organizer"}</p>
-                                    </div>
-                                </section>
-
-                                {/* Location (Map) */}
-                                <section className="space-y-6">
-                                    <h3 className="text-2xl font-bold text-white">Location</h3>
-
-                                    <div className="bg-[var(--color-surface)] rounded-2xl p-1 border border-white/10 shadow-xl overflow-hidden">
-                                        <div className="bg-[var(--color-background)]/50 px-6 py-4 border-b border-white/5 flex items-start gap-4">
-                                            <div className="p-2 bg-emerald-500/10 rounded-lg shrink-0">
-                                                <MapPin className="w-6 h-6 text-emerald-400" />
-                                            </div>
-                                            <div>
-                                                <p className="text-white font-semibold text-lg leading-tight">{event.location}</p>
-                                                <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`} target="_blank" rel="noreferrer noopener" className="text-emerald-400 hover:text-emerald-300 text-sm mt-1 inline-block">
-                                                    Get Directions &rarr;
-                                                </a>
-                                            </div>
-                                        </div>
-                                        <div className="h-[400px] w-full relative grayscale-[50%] hover:grayscale-0 transition-all duration-500">
-                                            <GoogleMapEmbed location={event.location} className="h-full w-full" />
-                                        </div>
-                                    </div>
-                                </section>
-                            </div>
-                        )}
-
-                        {/* Tab Content: Staff Management */}
                         {activeTab === "staff" && isOrganizer && (
-                            <div className="bg-[var(--color-surface)] rounded-2xl p-6 border border-white/10 shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                <StaffManagement
-                                    eventId={event.id}
-                                    assignedStaff={assignedStaff}
-                                    availableStaff={availableStaff}
-                                />
-                            </div>
+                            <StaffTab
+                                eventId={event.id}
+                                assignedStaff={assignedStaff}
+                                availableStaff={availableStaff}
+                            />
                         )}
 
-                        {/* Tab Content: Tickets Management */}
                         {activeTab === "tickets" && isOrganizer && (
-                            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                <TicketTypeManagementWrapper eventId={event.id} ticketTypes={normalizedTicketTypes} />
-                            </div>
+                            <TicketsTab eventId={event.id} ticketTypes={normalizedTicketTypes} />
                         )}
 
-                        {/* Tab Content: Analytics */}
                         {activeTab === "analytics" && isOrganizer && (
-                            <EventAnalytics eventId={event.id} ticketTypes={normalizedTicketTypes} event={event} />
+                            <AnalyticsTab
+                                event={event}
+                                eventId={event.id}
+                                ticketTypes={normalizedTicketTypes}
+                            />
                         )}
                     </div>
 
@@ -311,5 +226,33 @@ function TabButton({ active, onClick, icon, label }: { active: boolean; onClick:
             {icon}
             {label}
         </button>
+    );
+}
+
+function DateRow({ event }: { event: PublishedEvent }) {
+    const startDate = new Date(event.startTime);
+    return (
+        <div className="flex flex-col md:flex-row md:items-center gap-6 text-slate-300">
+            <div className="flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-emerald-400" />
+                <span className="text-lg font-medium">
+                    {startDate.toLocaleDateString("en-US", {
+                        weekday: "long",
+                        month: "long",
+                        day: "numeric",
+                    })}
+                </span>
+            </div>
+            <div className="hidden md:block w-px h-6 bg-white/20" />
+            <div className="flex items-center gap-2">
+                <Clock className="w-5 h-5 text-emerald-400" />
+                <span className="text-lg font-medium">
+                    {startDate.toLocaleTimeString("en-US", {
+                        hour: "numeric",
+                        minute: "2-digit",
+                    })}
+                </span>
+            </div>
+        </div>
     );
 }

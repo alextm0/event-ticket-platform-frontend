@@ -2,124 +2,17 @@
 
 import * as React from "react";
 import { useState } from "react";
-import { format } from "date-fns";
-import { Calendar as CalendarIcon, Loader2, Clock, Check, X, MapPin, AlertCircle } from "lucide-react";
+import { Loader2, Check, X, MapPin, AlertCircle } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
+import { DateTimePicker } from "@/components/ui/date-time-picker";
 import { createEventAction, updateEventAction } from "@/app/organizer/actions";
 import { Event } from "@/types";
 import { GoogleMapEmbed } from "@/components/ui/google-map-embed";
-
-// Helper component for Date and Time selection
-function DateTimePicker({
-    date,
-    setDate,
-    label,
-    minDate
-}: {
-    date: Date | undefined;
-    setDate: (date: Date | undefined) => void;
-    label: string;
-    minDate?: Date;
-}) {
-    const [selectedDate, setSelectedDate] = useState<Date | undefined>(date);
-    const [hours, setHours] = useState<string>(date ? format(date, "HH") : "12");
-    const [minutes, setMinutes] = useState<string>(date ? format(date, "mm") : "00");
-
-    React.useEffect(() => {
-        if (selectedDate) {
-            const newDate = new Date(selectedDate);
-            newDate.setHours(parseInt(hours), parseInt(minutes));
-            setDate(newDate);
-        }
-    }, [selectedDate, hours, minutes, setDate]);
-
-    // Calculate disabled dates: anything before the year/month/day of minDate
-    const disabledDays = minDate ? { before: new Date(new Date(minDate).setHours(0, 0, 0, 0)) } : undefined;
-
-    return (
-        <div className="space-y-2">
-            <Label className="text-slate-300 font-medium">{label}</Label>
-            <Popover>
-                <PopoverTrigger asChild>
-                    <Button
-                        variant={"outline"}
-                        type="button"
-                        className={cn(
-                            "w-full h-11 justify-start text-left font-normal bg-[var(--color-background)] border-[var(--color-border)] hover:bg-[var(--color-background)]/80 hover:text-white transition-all rounded-xl",
-                            !date && "text-muted-foreground"
-                        )}
-                    >
-                        <CalendarIcon className="mr-2 h-4 w-4 text-[var(--color-primary)] opacity-70" />
-                        {date ? format(date, "PPP p") : <span className="text-slate-500">Pick a date and time</span>}
-                    </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[320px] p-0 bg-[var(--color-surface)] border-[var(--color-border)] shadow-2xl rounded-2xl overflow-hidden" align="start">
-                    <div className="p-4 border-b border-[var(--color-border)] flex items-center justify-between gap-4 bg-[var(--color-background)]/50">
-                        <div className="flex items-center gap-2">
-                            <Clock className="h-4 w-4 text-[var(--color-primary)]" />
-                            <span className="text-sm font-semibold text-white">Time</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <Select value={hours} onValueChange={setHours}>
-                                <SelectTrigger className="w-[75px] h-9 bg-[var(--color-background)] border-[var(--color-border)] focus:ring-1 focus:ring-[var(--color-primary)]/30 rounded-lg">
-                                    <SelectValue placeholder="HH" />
-                                </SelectTrigger>
-                                <SelectContent className="bg-[var(--color-surface)] border-[var(--color-border)] max-h-60">
-                                    {Array.from({ length: 24 }).map((_, i) => (
-                                        <SelectItem key={i} value={i.toString().padStart(2, '0')}>
-                                            {i.toString().padStart(2, '0')}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <span className="text-white font-bold">:</span>
-                            <Select value={minutes} onValueChange={setMinutes}>
-                                <SelectTrigger className="w-[75px] h-9 bg-[var(--color-background)] border-[var(--color-border)] focus:ring-1 focus:ring-[var(--color-primary)]/30 rounded-lg">
-                                    <SelectValue placeholder="MM" />
-                                </SelectTrigger>
-                                <SelectContent className="bg-[var(--color-surface)] border-[var(--color-border)]">
-                                    {["00", "05", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"].map((m) => (
-                                        <SelectItem key={m} value={m}>
-                                            {m}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
-                    <Calendar
-                        mode="single"
-                        selected={selectedDate}
-                        onSelect={setSelectedDate}
-                        disabled={disabledDays}
-                        initialFocus
-                        className="p-3 bg-transparent text-white"
-                    />
-                </PopoverContent>
-            </Popover>
-        </div>
-    );
-}
-
-
 
 export default function EventForm({ initialData }: { initialData?: Event }) {
     const [loading, setLoading] = useState(false);

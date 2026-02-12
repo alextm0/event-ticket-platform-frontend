@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { serverRuntimeConfig } from "@/config/server-env";
+import { requireRouteAuth } from "@/lib/api-route-auth";
+import { errorResponse, handleRouteError } from "@/lib/api-response";
 
 interface RouteParams {
   params: Promise<{
@@ -12,20 +13,18 @@ export async function GET(_request: Request, { params }: RouteParams) {
   const { ticketId } = await params;
 
   if (!ticketId) {
-    return NextResponse.json({ message: "ticketId is required" }, { status: 400 });
+    return errorResponse("ticketId is required", 400);
   }
 
   try {
-    const cookieStore = await cookies();
-    const userId = cookieStore.get("userId")?.value;
-    const authToken = cookieStore.get("authToken")?.value;
-
-    if (!userId) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    const auth = await requireRouteAuth();
+    if (auth instanceof NextResponse) {
+      return auth;
     }
+    const { userId, authToken } = auth;
 
     const headers: Record<string, string> = {
-      "X-User-Id": userId,
+      "X-User-Id": userId!,
     };
 
     if (authToken) {
@@ -59,9 +58,9 @@ export async function GET(_request: Request, { params }: RouteParams) {
         errorText: errorText.substring(0, 200), // First 200 chars for debugging
       });
 
-      return NextResponse.json(
-        { message: errorBody.message || `HTTP ${response.status}` },
-        { status: response.status }
+      return errorResponse(
+        errorBody.message || errorBody.error || errorText || `HTTP ${response.status}`,
+        response.status
       );
     }
 
@@ -99,9 +98,6 @@ export async function GET(_request: Request, { params }: RouteParams) {
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,
     });
-    return NextResponse.json(
-      { message: "Unable to download ticket" },
-      { status: 500 }
-    );
+    return handleRouteError(error, "Error downloading ticket PDF");
   }
 }

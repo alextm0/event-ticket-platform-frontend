@@ -4,14 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { SESSION_UPDATED_EVENT } from "@/lib/session-events";
-
-const ROLE_DESTINATIONS: Record<string, string> = {
-  admin: "/admin",
-  organizer: "/organizer",
-  staff: "/staff",
-  attendee: "/my-tickets",
-};
-
+import { ROLE_DESTINATIONS } from "@/constants/roles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -78,7 +71,7 @@ export default function SignInPage() {
         if (next) {
           router.push(next);
         } else if (data.role) {
-          const role = data.role.toLowerCase();
+          const role = data.role.toLowerCase() as keyof typeof ROLE_DESTINATIONS;
           const dashboardPath = ROLE_DESTINATIONS[role];
           router.push(dashboardPath || "/onboarding");
         } else {

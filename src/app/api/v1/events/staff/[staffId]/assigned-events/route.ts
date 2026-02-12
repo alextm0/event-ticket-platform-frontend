@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { serverRuntimeConfig } from "@/config/server-env";
+import { requireRouteAuth } from "@/lib/api-route-auth";
+import { successResponse, errorResponse, handleRouteError } from "@/lib/api-response";
 
 interface RouteParams {
   params: Promise<{
@@ -13,16 +14,14 @@ export async function GET(_request: Request, { params }: RouteParams) {
     const { staffId } = await params;
 
     if (!staffId) {
-      return NextResponse.json({ message: "staffId is required" }, { status: 400 });
+      return errorResponse("staffId is required", 400);
     }
 
-    const cookieStore = await cookies();
-    const userId = cookieStore.get("userId")?.value;
-    const authToken = cookieStore.get("authToken")?.value;
-
-    if (!userId || !authToken) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    const auth = await requireRouteAuth();
+    if (auth instanceof NextResponse) {
+      return auth;
     }
+    const { userId, authToken } = auth;
 
     const backendUrl = `${serverRuntimeConfig.backendApiUrl}/api/v1/events/staff/${staffId}/assigned-events`;
 
@@ -33,14 +32,11 @@ export async function GET(_request: Request, { params }: RouteParams) {
         headers: {
           Authorization: `Bearer ${authToken}`,
           "Content-Type": "application/json",
-          "X-User-Id": userId,
+          "X-User-Id": userId!,
         },
       });
-    } catch {
-      return NextResponse.json(
-        { message: "Failed to connect to backend API" },
-        { status: 500 }
-      );
+    } catch (error) {
+      return handleRouteError(error, "Failed to connect to backend API");
     }
 
     if (!backendResponse.ok) {
@@ -53,12 +49,13 @@ export async function GET(_request: Request, { params }: RouteParams) {
       }
 
       if (backendResponse.status === 404) {
-        return NextResponse.json({ message: "Staff member not found" }, { status: 404 });
+        return errorResponse("Staff member not found", 404);
       }
       if (backendResponse.status === 403) {
-        return NextResponse.json({ message: "User is not a staff member" }, { status: 403 });
+        return errorResponse("User is not a staff member", 403);
       }
 
+      // Forward backend error response (may have custom structure)
       return NextResponse.json(errorBody, { status: backendResponse.status });
     }
 
@@ -67,18 +64,12 @@ export async function GET(_request: Request, { params }: RouteParams) {
     try {
       data = JSON.parse(responseText);
     } catch {
-      return NextResponse.json(
-        { message: "Backend returned invalid JSON response" },
-        { status: 500 }
-      );
+      return errorResponse("Backend returned invalid JSON response", 500);
     }
 
-    return NextResponse.json(data, { status: backendResponse.status });
-  } catch {
-    return NextResponse.json(
-      { message: "Internal Server Error" },
-      { status: 500 }
-    );
+    return successResponse(data, backendResponse.status);
+  } catch (error) {
+    return handleRouteError(error, "Error fetching assigned events");
   }
 }
 

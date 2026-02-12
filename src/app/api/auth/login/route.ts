@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { serverRuntimeConfig } from "@/config/server-env";
+import { successResponse, handleRouteError } from "@/lib/api-response";
 
 export async function POST(request: Request) {
   try {
@@ -49,13 +50,9 @@ export async function POST(request: Request) {
       path: "/",
     });
 
-    return NextResponse.json(data);
+    return successResponse(data);
   } catch (error) {
-    console.error("Login error:", error);
-    return NextResponse.json(
-      { message: "An error occurred during login" },
-      { status: 500 }
-    );
+    return handleRouteError(error, "Login error");
   }
 }
 

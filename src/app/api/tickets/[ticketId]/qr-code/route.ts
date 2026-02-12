@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-
 import { serverRuntimeConfig } from "@/config/server-env";
+import { requireRouteAuth } from "@/lib/api-route-auth";
+import { successResponse, errorResponse, handleRouteError } from "@/lib/api-response";
 
 interface RouteParams {
   params: Promise<{
@@ -13,21 +13,19 @@ export async function GET(_request: Request, { params }: RouteParams) {
   const { ticketId } = await params;
 
   if (!ticketId) {
-    return NextResponse.json({ message: "ticketId is required" }, { status: 400 });
+    return errorResponse("ticketId is required", 400);
   }
 
   try {
-    const cookieStore = await cookies();
-    const userId = cookieStore.get("userId")?.value;
-    const authToken = cookieStore.get("authToken")?.value;
-
-    if (!userId) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    const auth = await requireRouteAuth();
+    if (auth instanceof NextResponse) {
+      return auth;
     }
+    const { userId, authToken } = auth;
 
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
-      "X-User-Id": userId,
+      "X-User-Id": userId!,
     };
 
     if (authToken) {
@@ -45,12 +43,12 @@ export async function GET(_request: Request, { params }: RouteParams) {
 
     if (!response.ok) {
       const errorBody = await response.text();
-      return NextResponse.json({ message: errorBody || "Failed to fetch QR code" }, { status: response.status });
+      return errorResponse(errorBody || "Failed to fetch QR code", response.status);
     }
 
     const data = await response.json();
-    return NextResponse.json(data);
-  } catch {
-    return NextResponse.json({ message: "Internal Server Error" }, { status: 500 });
+    return successResponse(data);
+  } catch (error) {
+    return handleRouteError(error, "Error fetching QR code");
   }
 }

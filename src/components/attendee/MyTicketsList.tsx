@@ -1,25 +1,14 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { parse } from "date-fns";
-import type Ticket from "@/types/ticket-model";
+import type { Ticket } from "@/types";
 import TicketCard from "./TicketCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { Ticket as TicketIcon, AlertCircle, Search, X, Calendar } from "lucide-react";
 import { DateFilterInput } from "@/components/ui/date-filter-input";
-
-function parseDateDMY(value: string): Date | null {
-  if (!value?.trim()) return null;
-  const normalized = value.trim().replace(/\//g, ".");
-  try {
-    const d = parse(normalized, "d.M.yyyy", new Date());
-    return isNaN(d.getTime()) ? null : d;
-  } catch {
-    return null;
-  }
-}
+import { parseDateDMY } from "@/lib/utils";
 
 interface MyTicketsListProps {
   tickets: Ticket[];

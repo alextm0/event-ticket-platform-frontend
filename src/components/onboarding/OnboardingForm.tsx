@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
-import { ONBOARDING_ALLOWED_ROLES } from "@/constants/app-roles";
+import { ONBOARDING_ALLOWED_ROLES } from "@/constants/roles";
 import type { AppRole } from "@/lib/user-profile";
 import { completeOnboarding, type CompleteOnboardingState } from "@/app/onboarding/actions";
 import { RoleSelectionCard } from "./RoleSelectionCard";

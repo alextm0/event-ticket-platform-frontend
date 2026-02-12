@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import HomepageButton from "./HomepageButton";
 import HeaderLink from "./HeaderLink";
 import AccountButton from "./AccountButton";
-import ROLE_PAGES from "@/utils/role-pages";
+import { ROLE_PAGES } from "@/constants/roles";
 import { SESSION_UPDATED_EVENT } from "@/lib/session-events";
 
 function readRoleFromStorage() {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Ticket from "@/types/ticket-model";
+import type { Ticket } from "@/types";
 import TicketDetailsModal from "./TicketDetailsModal";
 import { Button } from "@/components/ui/button";
 import { Calendar, MapPin, Ticket as TicketIcon, Clock } from "lucide-react";
