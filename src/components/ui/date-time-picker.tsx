@@ -34,13 +34,29 @@ export function DateTimePicker({ date, setDate, label, minDate }: DateTimePicker
   const [hours, setHours] = useState<string>(date ? format(date, "HH") : "12");
   const [minutes, setMinutes] = useState<string>(date ? format(date, "mm") : "00");
 
+  // Sync internal state from date prop when it changes (e.g. external reset)
   React.useEffect(() => {
-    if (selectedDate) {
-      const newDate = new Date(selectedDate);
-      newDate.setHours(parseInt(hours), parseInt(minutes));
-      setDate(newDate);
-    }
-  }, [selectedDate, hours, minutes, setDate]);
+    setSelectedDate(date);
+    setHours(date ? format(date, "HH") : "12");
+    setMinutes(date ? format(date, "mm") : "00");
+  }, [date]);
+
+  // Push changes to parent; skip when reconstructed value equals prop (avoids mount and sync no-ops)
+  React.useEffect(() => {
+    const reconstructed = selectedDate
+      ? (() => {
+          const d = new Date(selectedDate);
+          d.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0, 0);
+          return d;
+        })()
+      : undefined;
+
+    const propTime = date?.getTime() ?? null;
+    const reconTime = reconstructed?.getTime() ?? null;
+    if (propTime === reconTime) return;
+
+    setDate(reconstructed);
+  }, [selectedDate, hours, minutes, date, setDate]);
 
   const disabledDays = minDate
     ? { before: new Date(new Date(minDate).setHours(0, 0, 0, 0)) }

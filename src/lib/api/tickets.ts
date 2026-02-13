@@ -183,12 +183,16 @@ export async function getTicketById(ticketId: string): Promise<Ticket> {
   return normalizeTicketResponse(data);
 }
 
+/**
+ * Purchase a ticket. Must only be invoked after requireRouteAuth("attendee") has run.
+ * Requires a valid auth token; throws if not authenticated.
+ */
 export async function buyTicket(
   eventId: string,
   ticketTypeId: string,
   quantity: number = 1,
 ): Promise<{ orderId: string }> {
-  const headers = await createAuthHeaders({ requireToken: false });
+  const headers = await createAuthHeaders({ requireToken: true });
   const response = await fetch(
     getBackendUrl(`/api/v1/published-event/${eventId}/ticket-types/${ticketTypeId}`),
     {

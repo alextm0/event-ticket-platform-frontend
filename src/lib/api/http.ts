@@ -63,6 +63,18 @@ export interface ApiFetchOptions extends RequestInit {
   retry?: { maxRetries?: number; timeoutMs?: number };
 }
 
+/** Normalize HeadersInit to a plain object for safe merging. */
+function normalizeHeadersToObject(headers: HeadersInit | undefined): Record<string, string> {
+  if (headers == null) return {};
+  if (headers instanceof Headers) {
+    return Object.fromEntries(headers.entries());
+  }
+  if (Array.isArray(headers)) {
+    return Object.fromEntries(headers);
+  }
+  return { ...headers };
+}
+
 /**
  * Fetch with auth headers. Optionally retries on 5xx/network errors.
  * Caller is responsible for checking response.ok and handling status codes.
@@ -75,10 +87,13 @@ export async function apiFetch(
   const maxRetries = retryOpt?.maxRetries ?? 0;
   const timeoutMs = retryOpt?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 
-  const headers = await createAuthHeaders({ requireToken: true });
+  const authHeaders = await createAuthHeaders({ requireToken: true });
+  const initHeaders = normalizeHeadersToObject(init.headers);
+  const mergedHeaders = { ...authHeaders, ...initHeaders };
+
   const mergedInit: RequestInit = {
     ...init,
-    headers: { ...headers, ...(init.headers as Record<string, string>) },
+    headers: mergedHeaders,
     cache: init.cache ?? "no-store",
   };
 

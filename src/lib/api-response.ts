@@ -17,13 +17,12 @@ export function errorResponse(message: string, status: number = 500): NextRespon
 
 /**
  * Handle route errors: log and return standardized 500 error response.
+ * Detailed error information is logged server-side but not exposed to clients.
  */
 export function handleRouteError(error: unknown, context?: string): NextResponse {
   const contextMsg = context ? `${context}: ` : "";
   console.error(`${contextMsg}`, error);
 
-  const message =
-    error instanceof Error ? error.message : "An internal server error occurred";
-
-  return errorResponse(message, 500);
+  // Always return a generic message to prevent leaking sensitive details
+  return errorResponse("Internal server error", 500);
 }

@@ -13,7 +13,11 @@ export async function getStaffAssignedEvents(staffId: string): Promise<StaffAssi
   if (!response.ok) {
     const body = await response.text();
     if (response.status === 404) return [];
-    if (response.status === 403) throw new Error("User is not a staff member");
+    if (response.status === 403) {
+      throw new Error(
+        `User is not a staff member (${response.status} ${response.statusText}): ${body}`,
+      );
+    }
     throw new Error(
       `Failed to fetch assigned events (${response.status} ${response.statusText}): ${body}`,
     );
