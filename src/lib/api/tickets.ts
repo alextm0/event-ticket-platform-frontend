@@ -88,7 +88,8 @@ export async function createTicketType(
     );
   }
 
-  return response.json();
+  const data = await response.json();
+  return normalizeTicketType(data as RawTicketType);
 }
 
 export async function updateTicketType(
@@ -117,7 +118,8 @@ export async function updateTicketType(
     );
   }
 
-  return response.json();
+  const data = await response.json();
+  return normalizeTicketType(data as RawTicketType);
 }
 
 export async function deleteTicketType(
@@ -143,7 +145,6 @@ export async function getUserTickets(): Promise<Ticket[]> {
   if (!userId) throw new Error("No user ID available for ticket lookup.");
 
   const headers = await createAuthHeaders({ requireToken: false });
-  headers["X-User-Id"] = userId;
 
   const response = await fetch(getBackendUrl("/api/v1/tickets"), {
     method: "GET",
