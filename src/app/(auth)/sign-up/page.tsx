@@ -5,13 +5,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { AppRole } from "@/lib/user-profile";
 import { SESSION_UPDATED_EVENT } from "@/lib/session-events";
-
-const ROLE_DESTINATIONS: Record<string, string> = {
-  admin: "/admin",
-  organizer: "/organizer",
-  staff: "/staff",
-  attendee: "/my-tickets",
-};
+import { ROLE_DESTINATIONS } from "@/constants/roles";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

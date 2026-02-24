@@ -15,9 +15,5 @@ export async function fetchEventAnalytics(eventId: string) {
         ? operationsResult.value
         : { checkedInCount: 0, totalSold: 0, noShowRate: 0 };
 
-    if (salesResult.status === "rejected") console.error("Analytics sales-history failed:", salesResult.reason);
-    if (ordersResult.status === "rejected") console.error("Analytics orders failed:", ordersResult.reason);
-    if (operationsResult.status === "rejected") console.error("Analytics operations failed:", operationsResult.reason);
-
     return { salesHistory, orders, operations };
 }

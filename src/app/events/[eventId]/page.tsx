@@ -4,7 +4,7 @@ import { Calendar, MapPin, Clock, ArrowLeft, User, Share2 } from "lucide-react";
 
 import { getPublishedEvent, getEvent, getEventTicketTypes, getCurrentUserId } from "@/lib/backend-client";
 import { TicketTypeList } from "@/components/events/TicketTypeList";
-import { PublishedEvent } from "@/types";
+import { PublishedEvent, type EventTicketType, type RawTicketType } from "@/types";
 
 import { StaffManagement } from "@/components/organizer/StaffManagement";
 import { TicketTypeManagementWrapper } from "@/components/organizer/TicketTypeManagementWrapper";
@@ -46,7 +46,7 @@ export default async function EventDetailsPage({ params }: EventDetailsPageProps
       }
     }
 
-    let ticketTypes = event.ticketTypes || [];
+    let ticketTypes: RawTicketType[] | EventTicketType[] = (event.ticketTypes ?? []) as unknown as RawTicketType[];
     if (ticketTypes.length === 0) {
       ticketTypes = await getEventTicketTypes(eventId).catch((err) => {
         console.warn("Failed to fetch ticket types (might be empty or unauthorized):", err.message);

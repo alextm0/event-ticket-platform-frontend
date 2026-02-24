@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { serverRuntimeConfig } from "@/config/server-env";
+import { successResponse, handleRouteError } from "@/lib/api-response";
 
 export async function GET() {
   try {
@@ -19,13 +20,9 @@ export async function GET() {
     }
 
     const data = await response.json();
-    return NextResponse.json(data);
+    return successResponse(data);
   } catch (error) {
-    console.error("SignupStatus error:", error);
-    return NextResponse.json(
-      { enabled: false },
-      { status: 500 }
-    );
+    return handleRouteError(error, "SignupStatus error");
   }
 }
 

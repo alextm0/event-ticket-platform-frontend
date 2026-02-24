@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import QRCode from "react-qr-code";
-import Ticket from "@/types/ticket-model";
+import type { Ticket } from "@/types";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,

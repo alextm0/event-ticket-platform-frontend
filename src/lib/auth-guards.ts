@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 
 import type { AppRole } from "./user-profile";
-import ROLE_DESTINATIONS from "@/utils/role-destinations";
+import { ROLE_DESTINATIONS } from "@/constants/roles";
 
 const VALID_ROLES = ["admin", "organizer", "staff", "attendee"];
 

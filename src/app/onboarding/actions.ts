@@ -4,9 +4,8 @@ import { redirect } from "next/navigation";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { cookies } from "next/headers";
 
-import { ONBOARDING_ALLOWED_ROLES } from "@/constants/app-roles";
+import { ONBOARDING_ALLOWED_ROLES, ROLE_DESTINATIONS } from "@/constants/roles";
 import type { AppRole } from "@/lib/user-profile";
-import ROLE_DESTINATIONS from "@/utils/role-destinations";
 
 export interface CompleteOnboardingState {
   error?: string;

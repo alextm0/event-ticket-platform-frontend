@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { serverRuntimeConfig } from "@/config/server-env";
+import { successResponse, handleRouteError } from "@/lib/api-response";
 
 export async function POST(request: Request) {
   try {
@@ -72,17 +73,13 @@ export async function POST(request: Request) {
     });
 
     // Return combined data or just login data (which has the token)
-    return NextResponse.json({
+    return successResponse({
       ...signupData,
       token: loginData.token,
       userId: loginData.userId
     });
   } catch (error) {
-    console.error("Signup error:", error);
-    return NextResponse.json(
-      { message: "An error occurred during signup" },
-      { status: 500 }
-    );
+    return handleRouteError(error, "Signup error");
   }
 }
 

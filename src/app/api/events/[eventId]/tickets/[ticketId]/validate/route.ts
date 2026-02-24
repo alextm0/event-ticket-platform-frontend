@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { validateTicketWithBackend } from "@/lib/validation/server";
+import { requireRouteAuth } from "@/lib/api-route-auth";
+import { successResponse, errorResponse, handleRouteError } from "@/lib/api-response";
 
 
 interface RouteParams {
@@ -17,29 +18,15 @@ export async function POST(request: Request, { params }: RouteParams) {
 
     // Validate required parameters
     if (!eventId || !ticketId) {
-      return NextResponse.json(
-        { message: "eventId and ticketId are required" },
-        { status: 400 }
-      );
+      return errorResponse("eventId and ticketId are required", 400);
     }
 
-    // Read auth from cookies
-    const cookieStore = await cookies();
-    const userId = cookieStore.get("userId")?.value;
-    const userRole = cookieStore.get("userRole")?.value;
-    const authToken = cookieStore.get("authToken")?.value;
-
-    // Auth and role checks
-    if (!userId || !authToken) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    // Auth and role checks (staff only)
+    const auth = await requireRouteAuth("staff");
+    if (auth instanceof NextResponse) {
+      return auth;
     }
-
-    if (userRole !== "staff") {
-      return NextResponse.json(
-        { message: "Unauthorized: Staff role required" },
-        { status: 403 }
-      );
-    }
+    const { userId, authToken } = auth;
 
     // Parse optional body for code and organizerId
     let code: string | undefined;
@@ -60,8 +47,8 @@ export async function POST(request: Request, { params }: RouteParams) {
     const result = await validateTicketWithBackend({
       eventId,
       ticketId,
-      authToken,
-      userId,
+      authToken: authToken!,
+      userId: userId!,
       code,
       organizerId,
     });
@@ -92,14 +79,14 @@ export async function POST(request: Request, { params }: RouteParams) {
         return NextResponse.json(
           {
             ...errorBody,
-            message: errorMessage,
+            error: errorMessage,
             valid: false,
           },
           { status: result.error.status }
         );
       }
       return NextResponse.json({
-        message: "Validation failed",
+        error: "Validation failed",
         valid: false,
       }, { status: result.status });
     }
@@ -150,11 +137,8 @@ export async function POST(request: Request, { params }: RouteParams) {
       validationStatus: validationStatus, // Include validationStatus for reference
     };
 
-    return NextResponse.json(formattedResponse, { status: 200 });
-  } catch {
-    return NextResponse.json(
-      { message: "Internal Server Error" },
-      { status: 500 }
-    );
+    return successResponse(formattedResponse);
+  } catch (error) {
+    return handleRouteError(error, "Ticket validation error");
   }
 }

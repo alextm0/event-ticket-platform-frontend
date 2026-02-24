@@ -3,18 +3,20 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { DollarSign, Ticket, Calendar, TrendingUp, Loader2 } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { TicketType, PublishedEvent } from "@/types";
+import { EventTicketType, PublishedEvent } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { PulseCard } from "@/components/organizer/PulseCard";
+import { TicketRevenueRow } from "@/components/organizer/TicketRevenueRow";
 import { fetchEventAnalytics } from "@/app/actions/analytics";
 import { format, differenceInDays, startOfDay } from "date-fns";
 import type { SalesHistoryItem, RecentOrder, OperationsMetrics } from "@/lib/backend-client";
 
 interface EventAnalyticsProps {
     eventId: string;
-    ticketTypes: TicketType[];
+    ticketTypes: EventTicketType[];
     event?: PublishedEvent;
 }
 
@@ -276,49 +278,3 @@ export function EventAnalytics({ eventId, ticketTypes, event }: EventAnalyticsPr
     );
 }
 
-// Sub-components
-
-function PulseCard({ title, value, subtext, icon }: { title: string; value: string; subtext: string; icon: React.ReactNode }) {
-    return (
-        <Card className="bg-[var(--color-surface)] border-white/10 shadow-lg hover:border-emerald-500/30 transition-all duration-300 group">
-            <CardContent className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                    <div className="p-3 rounded-xl bg-white/5 group-hover:bg-white/10 transition-colors">
-                        {icon}
-                    </div>
-                </div>
-                <div>
-                    <h3 className="text-3xl font-bold text-white mb-1">{value}</h3>
-                    <p className="text-sm text-slate-400 font-medium mb-1">{title}</p>
-                    <p className="text-xs text-slate-500">{subtext}</p>
-                </div>
-            </CardContent>
-        </Card>
-    );
-}
-
-function TicketRevenueRow({ ticket, totalRevenue }: { ticket: TicketType, totalRevenue: number }) {
-    const revenue = ticket.soldCount * ticket.price;
-    const revenueShare = totalRevenue > 0 ? Math.round((revenue / totalRevenue) * 100) : 0;
-
-    return (
-        <div>
-            <div className="flex justify-between items-center mb-2">
-                <div>
-                    <p className="text-sm font-medium text-white">{ticket.name}</p>
-                    <p className="text-xs text-slate-400">{ticket.soldCount} sold / {ticket.totalQuantity} total</p>
-                </div>
-                <div className="text-right">
-                    <p className="text-sm font-semibold text-white">${revenue.toLocaleString()}</p>
-                    <p className="text-xs text-emerald-400">{revenueShare}% of revenue</p>
-                </div>
-            </div>
-            <div className="h-2 w-full bg-black/40 rounded-full overflow-hidden">
-                <div
-                    className="h-full bg-emerald-500 rounded-full"
-                    style={{ width: `${revenueShare}%` }}
-                />
-            </div>
-        </div>
-    );
-}

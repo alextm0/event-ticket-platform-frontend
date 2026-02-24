@@ -7,18 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Search, Calendar } from "lucide-react";
 import { DateFilterInput } from "@/components/ui/date-filter-input";
 import { Button } from "@/components/ui/button";
-import { parse } from "date-fns";
-
-function parseDateDMY(value: string): Date | null {
-    if (!value?.trim()) return null;
-    const normalized = value.trim().replace(/\//g, ".");
-    try {
-        const d = parse(normalized, "d.M.yyyy", new Date());
-        return isNaN(d.getTime()) ? null : d;
-    } catch {
-        return null;
-    }
-}
+import { parseDateDMY } from "@/lib/utils";
 
 interface BrowseEventsClientProps {
     initialEvents: PublishedEvent[];

@@ -21,7 +21,6 @@ export function useScanCooldown() {
             globalScanCache.lastCode === code &&
             (now - globalScanCache.lastTime) < COOLDOWN_MS
         ) {
-            console.log("Blocking duplicate scan (cooldown):", code);
             return false;
         }
 
